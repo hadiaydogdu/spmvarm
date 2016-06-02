@@ -3,7 +3,9 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#if defined(__linux__) && defined(__x86_64__)
 #include "lib/Target/X86/MCTargetDesc/X86BaseInfo.h"
+#endif
 #include "llvm/MC/MCContext.h"
 #include "llvm/MC/MCExpr.h"
 #include "llvm/MC/MCInstBuilder.h"
@@ -122,6 +124,7 @@ void StencilCodeEmitter::emit() {
 }
 
 void StencilCodeEmitter::dumpPushPopHeader() {
+#if defined(__linux__) && defined(__x86_64__)
   // rows is in %rdx, cols is in %rcx, vals is in %r8
   emitPushPopInst(X86::PUSH64r,X86::RBX);
   emitLEAQInst(X86::R8, X86::RBX, sizeof(double) * baseValsIndex); // using %rbx for vals
@@ -131,17 +134,21 @@ void StencilCodeEmitter::dumpPushPopHeader() {
   
   emitPushPopInst(X86::PUSH64r,X86::R11);
   emitPushPopInst(X86::PUSH64r,X86::RDX);
+#endif
 }
 
 void StencilCodeEmitter::dumpPushPopFooter() {
+#if defined(__linux__) && defined(__x86_64__)
   emitPushPopInst(X86::POP64r, X86::RDX);
   emitPushPopInst(X86::POP64r, X86::R11);
   emitPushPopInst(X86::POP64r, X86::R8);
   emitPushPopInst(X86::POP64r, X86::RBX);
+#endif
 }
 
 void StencilCodeEmitter::dumpStencilAssemblyText(const StencilPattern &stencil,
                                                  const RowIndices &rowIndices) {
+#if defined(__linux__) && defined(__x86_64__)
   unsigned long popularity = rowIndices.size();
   unsigned long stencilSize = stencil.size();
   if(stencilSize == 0 || popularity == 0) return;
@@ -208,6 +215,7 @@ void StencilCodeEmitter::dumpStencilAssemblyText(const StencilPattern &stencil,
     //  leaq "sizeof(int)*popularity"(%r8), %r8
     emitLEAQInst(X86::R8, X86::R8, (int)(sizeof(int)*popularity));
   }
+#endif
 }
 
 

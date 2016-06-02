@@ -3,7 +3,9 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#if defined(__linux__) && defined(__x86_64__)
 #include "lib/Target/X86/MCTargetDesc/X86BaseInfo.h"
+#endif
 #include "llvm/MC/MCContext.h"
 #include "llvm/MC/MCExpr.h"
 #include "llvm/MC/MCInstBuilder.h"
@@ -141,6 +143,7 @@ void GenOSKICodeEmitter::emit() {
 }
 
 void GenOSKICodeEmitter::dumpPushPopHeader() {
+#if defined(__linux__) && defined(__x86_64__)
   // rows is in %rdx, cols is in %rcx, vals is in %r8
   emitPushPopInst(X86::PUSH64r,X86::R11);
   emitLEAQInst(X86::R8, X86::R11, (int)(sizeof(double) * baseValsIndex)); // using %r11 for vals
@@ -155,9 +158,11 @@ void GenOSKICodeEmitter::dumpPushPopHeader() {
   emitPushPopInst(X86::PUSH64r,X86::RCX);
   emitPushPopInst(X86::PUSH64r,X86::RDX);
   emitPushPopInst(X86::PUSH64r,X86::RBX);
+#endif
 }
 
 void GenOSKICodeEmitter::dumpPushPopFooter() {
+#if defined(__linux__) && defined(__x86_64__)
   emitPushPopInst(X86::POP64r,X86::RBX);
   emitPushPopInst(X86::POP64r,X86::RDX);
   emitPushPopInst(X86::POP64r,X86::RCX);
@@ -165,9 +170,11 @@ void GenOSKICodeEmitter::dumpPushPopFooter() {
   emitPushPopInst(X86::POP64r,X86::R11);
   emitPushPopInst(X86::POP64r,X86::R9);
   emitPushPopInst(X86::POP64r,X86::R8);
+#endif
 }
 
 void GenOSKICodeEmitter::dumpForLoops() {
+#if defined(__linux__) && defined(__x86_64__)
   // xorl %ecx, %ecx
   emitXOR32rrInst(X86::ECX, X86::ECX);
   
@@ -242,5 +249,6 @@ void GenOSKICodeEmitter::dumpForLoops() {
     emitLEAQInst(X86::R8, X86::R8, sizeof(int)*numBlocks);
     emitLEAQInst(X86::R9, X86::R9, sizeof(int)*numBlocks);
   }
+#endif
 }
 

@@ -31,7 +31,9 @@
 #include "llvm/Support/TargetRegistry.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/ToolOutputFile.h"
+#if defined(__linux__) && defined(__x86_64__)
 #include "lib/Target/X86/X86TargetObjectFile.h"
+#endif
 //#include "llvm/Target/TargetLoweringObjectFile.h"
 #include "llvm/Support/DynamicLibrary.h"
 #include "llvm/ExecutionEngine/SectionMemoryManager.h"
@@ -158,7 +160,12 @@ void SpMVSpecializer::loadBuffer(ObjectBuffer *Buffer) {
   }
 }
 
+#if defined(__linux__) && defined(__x86_64__)
 TargetLoweringObjectFile *getMCObjectFileInfo(Triple &TheTriple) {
+#else
+void getMCObjectFileInfo(Triple &TheTriple) {
+#endif 
+#if defined(__linux__) && defined(__x86_64__)
   TargetLoweringObjectFile *mcObjectFileInfo = NULL;
   if(TheTriple.getArch() == Triple::x86_64 && TheTriple.getOS() == Triple::Darwin) {
     mcObjectFileInfo = new X86_64MachoTargetObjectFile();
@@ -169,6 +176,9 @@ TargetLoweringObjectFile *getMCObjectFileInfo(Triple &TheTriple) {
     exit(1);
   }
   return mcObjectFileInfo;
+#else
+return;
+#endif
 }
   
 

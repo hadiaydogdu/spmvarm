@@ -1,7 +1,9 @@
 #include "method.h"
 #include <iostream>
 #include <sstream>
+#if defined(__linux__) && defined(__x86_64__)
 #include "lib/Target/X86/MCTargetDesc/X86BaseInfo.h"
+#endif
 #include "llvm/MC/MCContext.h"
 #include "llvm/MC/MCInstBuilder.h"
 #include "llvm/MC/MCExpr.h"
@@ -81,10 +83,15 @@ void SpMVCodeEmitter::dumpMultByMFooter(MCStreamer *Str) {
 }
 
 static bool isR8R15Register(unsigned registerNumber) {
+#if defined(__linux__) && defined(__x86_64__)
   return registerNumber >= X86::R8 && registerNumber <= X86::R15;
+#else
+return false;
+#endif
 }
 
 void SpMVCodeEmitter::emitRegInst(unsigned opCode, int XMMfrom, int XMMto) {
+#if defined(__linux__) && defined(__x86_64__)
   unsigned char data[5];
   unsigned char *dataPtr = data;
   if (opCode != X86::XORPSrr)
@@ -110,10 +117,12 @@ void SpMVCodeEmitter::emitRegInst(unsigned opCode, int XMMfrom, int XMMto) {
   unsigned char regNumber = 0xc0 + (XMMfrom % 8) + (XMMto % 8) * 8;
   *(dataPtr++) = regNumber;
 
-  DFOS->append(data, dataPtr);    
+  DFOS->append(data, dataPtr); 
+#endif   
 }
 
 unsigned char registerCode(unsigned reg) {
+#if defined(__linux__) && defined(__x86_64__)
   if (isR8R15Register(reg)) {
     return (unsigned char)(reg - X86::R8);
   } else {
@@ -137,6 +146,7 @@ unsigned char registerCode(unsigned reg) {
       exit(1);      
     }
   }
+#endif
 }
 
 void SpMVCodeEmitter::emitMOVSLQInst(unsigned destinationRegister, unsigned baseRegister, 
@@ -147,6 +157,7 @@ void SpMVCodeEmitter::emitMOVSLQInst(unsigned destinationRegister, unsigned base
 void SpMVCodeEmitter::emitMOVSLQInst(unsigned destinationRegister, unsigned baseRegister, 
                                      unsigned scaleRegister, unsigned int scaleFactor, 
                                      int memOffset) {
+#if defined(__linux__) && defined(__x86_64__)
   if (scaleFactor != 1 && scaleFactor != 2 && scaleFactor != 4 && scaleFactor != 8) {
     std::cerr << "Scale factor can only be 1, 2, 4, or 8.\n";
     exit(1);
@@ -211,6 +222,7 @@ void SpMVCodeEmitter::emitMOVSLQInst(unsigned destinationRegister, unsigned base
   }
   
   DFOS->append(data, dataPtr);
+#endif
 }
 
 //  leaq "memoffset"(%baseRegisterFrom), %baseRegisterTo
@@ -220,6 +232,7 @@ void SpMVCodeEmitter::emitLEAQInst(unsigned baseRegisterFrom, unsigned baseRegis
 
 //  leaq "memoffset"(%baseRegisterFrom, %scaleRegister), %baseRegisterTo
 void SpMVCodeEmitter::emitLEAQInst(unsigned baseRegisterFrom, unsigned baseRegisterTo, unsigned scaleRegister, int memOffset){
+#if defined(__linux__) && defined(__x86_64__)
   if (!(scaleRegister == 0 || scaleRegister == X86::R10)) {
     std::cerr << "Unsupported scaleRegister in emitLEAQInst.\n";
     exit(1);
@@ -271,10 +284,12 @@ void SpMVCodeEmitter::emitLEAQInst(unsigned baseRegisterFrom, unsigned baseRegis
   }
 
   DFOS->append(data, dataPtr);
+#endif
 }
 
 // leaq (%rip), %REG
 void SpMVCodeEmitter::emitLEAQ_RIP(unsigned toRegister, int memOffset) {
+#if defined(__linux__) && defined(__x86_64__)
   unsigned char data[7];
   unsigned char *dataPtr = data;
   
@@ -302,9 +317,11 @@ void SpMVCodeEmitter::emitLEAQ_RIP(unsigned toRegister, int memOffset) {
   *(dataPtr++) = (unsigned char)(memOffset >> 24);
 
   DFOS->append(data, dataPtr);
+#endif
 }
 
 void SpMVCodeEmitter::emitPushPopInst(unsigned opCode, unsigned baseRegister){
+#if defined(__linux__) && defined(__x86_64__)
   unsigned char data[4];
   unsigned char *dataPtr = data;
 
@@ -320,6 +337,7 @@ void SpMVCodeEmitter::emitPushPopInst(unsigned opCode, unsigned baseRegister){
   dataPtr++;
   
   DFOS->append(data, dataPtr);
+#endif
 }
 
 // emits for both ADD64ri32 & ADD64ri8
@@ -440,6 +458,7 @@ void SpMVCodeEmitter::emitJMPInst(long numBytesToJump){
 }
 
 void SpMVCodeEmitter::emitDynamicJMPInst(unsigned baseRegister){
+#if defined(__linux__) && defined(__x86_64__)
   if (baseRegister != X86::RDX) {
     std::cerr << "Only RDX is supported in emitDynamicJMPInst.\n";
     exit(-1);
@@ -451,9 +470,11 @@ void SpMVCodeEmitter::emitDynamicJMPInst(unsigned baseRegister){
   *(dataPtr++) = 0xe2;
   
   DFOS->append(data, dataPtr);
+#endif
 }
 
 void SpMVCodeEmitter::emitXOR32rrInst(unsigned registerFrom, unsigned registerTo) {
+#if defined(__linux__) && defined(__x86_64__)
   if (registerFrom != registerTo) {
     std::cerr << "Source and destination registers must be the same in emitXOR32rr.\n";
     exit(-1);
@@ -477,9 +498,11 @@ void SpMVCodeEmitter::emitXOR32rrInst(unsigned registerFrom, unsigned registerTo
   }  
   
   DFOS->append(data, dataPtr);
+#endif
 }
 
 void SpMVCodeEmitter::emitCMP32riInst(unsigned registerTo, int imm) {
+#if defined(__linux__) && defined(__x86_64__)
   unsigned char data[7];
   unsigned char *dataPtr = data;
   if (registerTo == X86::R11D) {
@@ -498,6 +521,7 @@ void SpMVCodeEmitter::emitCMP32riInst(unsigned registerTo, int imm) {
   *(dataPtr++) = (unsigned char) (imm >> 24);
   
   DFOS->append(data, dataPtr);
+#endif
 }
 
 void SpMVCodeEmitter::emitNOP4() {
@@ -592,46 +616,63 @@ void SpMVCodeEmitter::emitRETInst() {
 
 // addsd offset(%baseRegister), %xmmN
 void SpMVCodeEmitter::emitADDSDrmInst(int offset, unsigned baseRegister, unsigned xmmRegisterNumber) {
+#if defined(__linux__) && defined(__x86_64__)
   emitMemInst(X86::ADDSDrm, offset, baseRegister, 0, 1, xmmRegisterNumber);
+#endif
 }
 
 // addsd offset(%baseRegister, %scaleRegister, scaleFactor), %xmmN
 void SpMVCodeEmitter::emitADDSDrmInst(int offset, unsigned baseRegister, unsigned scaleRegister, unsigned scaleFactor, unsigned xmmRegisterNumber) {
+#if defined(__linux__) && defined(__x86_64__)
   emitMemInst(X86::ADDSDrm, offset, baseRegister, scaleRegister, scaleFactor, xmmRegisterNumber);
+#endif
 }
 
 // mulsd offset(%baseRegister), %xmmN
 void SpMVCodeEmitter::emitMULSDrmInst(int offset, unsigned baseRegister, unsigned xmmRegisterNumber) {
+#if defined(__linux__) && defined(__x86_64__)
   emitMemInst(X86::MULSDrm, offset, baseRegister, 0, 1, xmmRegisterNumber);
+#endif
 }
 
 // mulsd offset(%baseRegister, %scaleRegister, scaleFactor), %xmmN
 void SpMVCodeEmitter::emitMULSDrmInst(int offset, unsigned baseRegister, unsigned scaleRegister, unsigned scaleFactor, unsigned xmmRegisterNumber) {
+#if defined(__linux__) && defined(__x86_64__)
   emitMemInst(X86::MULSDrm, offset, baseRegister, scaleRegister, scaleFactor, xmmRegisterNumber);
+#endif
 }
 
 // movsd offset(%baseRegister), %xmmN
 void SpMVCodeEmitter::emitMOVSDrmInst(int offset, unsigned baseRegister, unsigned xmmRegisterNumber) {
+#if defined(__linux__) && defined(__x86_64__)
   emitMemInst(X86::MOVSDrm, offset, baseRegister, 0, 1, xmmRegisterNumber);
+#endif
 }
 
 // movsd offset(%baseRegister, %scaleRegister, scaleFactor), %xmmN
 void SpMVCodeEmitter::emitMOVSDrmInst(int offset, unsigned baseRegister, unsigned scaleRegister, unsigned scaleFactor, unsigned xmmRegisterNumber) {
+#if defined(__linux__) && defined(__x86_64__)
   emitMemInst(X86::MOVSDrm, offset, baseRegister, scaleRegister, scaleFactor, xmmRegisterNumber);
+#endif
 }
 
 // movsd %xmmN, offset(%baseRegister)
 void SpMVCodeEmitter::emitMOVSDmrInst(unsigned xmmRegisterNumber, int offset, unsigned baseRegister) {
+#if defined(__linux__) && defined(__x86_64__)
   emitMemInst(X86::MOVSDmr, offset, baseRegister, 0, 1, xmmRegisterNumber);
+#endif
 }
 
 // movsd %xmmN, offset(%baseRegister, %scaleRegister, scaleFactor)
 void SpMVCodeEmitter::emitMOVSDmrInst(unsigned xmmRegisterNumber, int offset, unsigned baseRegister, unsigned scaleRegister, unsigned scaleFactor) {
+#if defined(__linux__) && defined(__x86_64__)
   emitMemInst(X86::MOVSDmr, offset, baseRegister, scaleRegister, scaleFactor, xmmRegisterNumber);
+#endif
 }
 
 // mul/add/movsd offset(%baseRegister), %xmmN
 void SpMVCodeEmitter::emitMemInst(unsigned opcode, int offset, unsigned baseRegister, unsigned scaleRegister, unsigned scaleFactor, unsigned xmmRegisterNumber) {
+#if defined(__linux__) && defined(__x86_64__)
   if (scaleFactor != 1 && scaleFactor != 2 && scaleFactor != 4 && scaleFactor != 8) {
     std::cerr << "Scale factor can only be 1, 2, 4, or 8.\n";
     exit(1);
@@ -709,6 +750,7 @@ void SpMVCodeEmitter::emitMemInst(unsigned opcode, int offset, unsigned baseRegi
     }
   }
   DFOS->append(data, dataPtr);
+#endif
 }
 
 

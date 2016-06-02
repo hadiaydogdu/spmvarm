@@ -4,7 +4,9 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#if defined(__linux__) && defined(__x86_64__)
 #include "lib/Target/X86/MCTargetDesc/X86BaseInfo.h"
+#endif
 #include "llvm/MC/MCContext.h"
 #include "llvm/MC/MCExpr.h"
 #include "llvm/MC/MCInstBuilder.h"
@@ -125,6 +127,7 @@ void CSRbyNZCodeEmitter::emit() {
 }
   
 void CSRbyNZCodeEmitter::dumpPushPopHeader() {
+#if defined(__linux__) && defined(__x86_64__)
   // rows is in %rdx, cols is in %rcx, vals is in %r8
   emitPushPopInst(X86::PUSH64r,X86::R8);
   emitPushPopInst(X86::PUSH64r,X86::R9);
@@ -138,9 +141,11 @@ void CSRbyNZCodeEmitter::dumpPushPopHeader() {
   emitLEAQInst(X86::RDX, X86::RDX, (int)(sizeof(int) * baseRowsIndex));
   emitLEAQInst(X86::RCX, X86::RCX, (int)(sizeof(int) * baseValsIndex));
   emitLEAQInst(X86::R8, X86::R8, (int)(sizeof(double) * baseValsIndex));
+#endif
 }
 
 void CSRbyNZCodeEmitter::dumpPushPopFooter() {
+#if defined(__linux__) && defined(__x86_64__)
   emitPushPopInst(X86::POP64r, X86::RDX);
   emitPushPopInst(X86::POP64r, X86::RCX);
   emitPushPopInst(X86::POP64r, X86::RBX);
@@ -149,9 +154,11 @@ void CSRbyNZCodeEmitter::dumpPushPopFooter() {
   emitPushPopInst(X86::POP64r, X86::R10);
   emitPushPopInst(X86::POP64r, X86::R9);
   emitPushPopInst(X86::POP64r, X86::R8);
+#endif
 }
 
 void CSRbyNZCodeEmitter::dumpSingleLoop(unsigned long numRows, unsigned long rowLength) {
+#if defined(__linux__) && defined(__x86_64__)
   unsigned long labeledBlockBeginningOffset = 0;
   
   // xorl %r9d, %r9d
@@ -206,4 +213,5 @@ void CSRbyNZCodeEmitter::dumpSingleLoop(unsigned long numRows, unsigned long row
   emitADDQInst(numRows*rowLength*4, X86::RCX);
   //addq $numRows*rowLength*8, %r8
   emitADDQInst(numRows*rowLength*8, X86::R8);
+#endif
 }
