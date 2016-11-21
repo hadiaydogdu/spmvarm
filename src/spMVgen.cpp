@@ -31,10 +31,12 @@
 #include "llvm/Support/TargetRegistry.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/ToolOutputFile.h"
-#if defined(__linux__) && defined(__x86_64__)
+
 #include "lib/Target/X86/X86TargetObjectFile.h"
-#endif
-//#include "llvm/Target/TargetLoweringObjectFile.h"
+
+#include "lib/Target/ARM/ARMTargetObjectFile.h"
+
+#include "llvm/Target/TargetLoweringObjectFile.h"
 #include "llvm/Support/DynamicLibrary.h"
 #include "llvm/ExecutionEngine/SectionMemoryManager.h"
 #include "llvm/ExecutionEngine/RuntimeDyld.h"
@@ -160,25 +162,22 @@ void SpMVSpecializer::loadBuffer(ObjectBuffer *Buffer) {
   }
 }
 
-#if defined(__linux__) && defined(__x86_64__)
 TargetLoweringObjectFile *getMCObjectFileInfo(Triple &TheTriple) {
-#else
-void getMCObjectFileInfo(Triple &TheTriple) {
-#endif 
-#if defined(__linux__) && defined(__x86_64__)
+
+//printf("getArch %d, getOs :%d \n",TheTriple.getArch(), TheTriple.getOS());
+ 
   TargetLoweringObjectFile *mcObjectFileInfo = NULL;
   if(TheTriple.getArch() == Triple::x86_64 && TheTriple.getOS() == Triple::Darwin) {
     mcObjectFileInfo = new X86_64MachoTargetObjectFile();
   } else if(TheTriple.getArch() == Triple::x86_64 && TheTriple.getOS() == Triple::Linux) {
     mcObjectFileInfo = new X86LinuxTargetObjectFile();
+  } else if(TheTriple.getArch() == Triple::arm && TheTriple.getOS() == Triple::Linux) {
+    mcObjectFileInfo = new ARMElfTargetObjectFile();
   } else {
     cerr << "Only X86_64 on Linux or MacOS is supported.\n";
     exit(1);
   }
   return mcObjectFileInfo;
-#else
-return;
-#endif
 }
   
 
@@ -200,6 +199,7 @@ static inline MCTargetOptions InitMCTargetOptions() {
 // TODO: Memory management.
 void SpMVSpecializer::specialize() {
   // Initialize targets and assembly printers/parsers.
+//#if defined(__linux__) && defined(__x86_64__)
   
   llvm::InitializeAllTargetInfos();
   llvm::InitializeAllTargetMCs();
@@ -282,6 +282,7 @@ void SpMVSpecializer::specialize() {
   MemoryBuffer *memBuffer = MemoryBuffer::getMemBuffer(svectorOS.str(), "", false);
   ObjectBuffer *Buffer = new ObjectBuffer(memBuffer);
   loadBuffer(Buffer);
+//#endif
 }
 
 void SpMVSpecializer::setMCStreamer(llvm::MCStreamer *Str) {
