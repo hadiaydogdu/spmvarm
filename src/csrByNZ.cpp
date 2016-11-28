@@ -6,7 +6,10 @@
 #include <sstream>
 #if defined(__linux__) && defined(__x86_64__)
 #include "lib/Target/X86/MCTargetDesc/X86BaseInfo.h"
+#else
+#include "lib/Target/ARM/MCTargetDesc/ARMBaseInfo.h"
 #endif
+
 #include "llvm/MC/MCContext.h"
 #include "llvm/MC/MCExpr.h"
 #include "llvm/MC/MCInstBuilder.h"
@@ -115,14 +118,16 @@ rowByNZs(rowByNZs), baseValsIndex(baseValsIndex), baseRowsIndex(baseRowsIndex) {
 }
 
 void CSRbyNZCodeEmitter::emit() {
-  dumpPushPopHeader();
-  
-  for (auto &rowByNZ : *rowByNZs) {
-    unsigned long rowLength = rowByNZ.first;
-    dumpSingleLoop(rowByNZ.second.getRowIndices()->size(), rowLength);
-  }
-  
-  dumpPushPopFooter();
+//  dumpPushPopHeader();
+
+
+//  for (auto &rowByNZ : *rowByNZs) {
+//    unsigned long rowLength = rowByNZ.first;
+//    dumpSingleLoop(rowByNZ.second.getRowIndices()->size(), rowLength);
+//  }  
+    dumpSingleLoop(400, 3);
+ 
+ // dumpPushPopFooter();
   emitRETInst();
 }
   
@@ -158,60 +163,88 @@ void CSRbyNZCodeEmitter::dumpPushPopFooter() {
 }
 
 void CSRbyNZCodeEmitter::dumpSingleLoop(unsigned long numRows, unsigned long rowLength) {
-#if defined(__linux__) && defined(__x86_64__)
+
   unsigned long labeledBlockBeginningOffset = 0;
   
-  // xorl %r9d, %r9d
-  emitXOR32rrInst(X86::R9D, X86::R9D);
-  // xorl %ebx, %ebx
-  emitXOR32rrInst(X86::EBX, X86::EBX);
-  
+  //mov     r3, #0
+  emitMOVArmInst(ARM::R3, 0x0);
+  printf("mov     r3, #0 \n");
+
+  //vmov.i32        d16, #0x0
+  emitVMOVI32ArmInst(ARM::D16, 0x0);
+  printf("vmov.i32        d16, #0x0 \n");
+
   //.align 16, 0x90
-  emitCodeAlignment(16);
+//  emitCodeAlignment(16);
   //.LBB0_1:
-  labeledBlockBeginningOffset = DFOS->size();
-  
-  //xorps %xmm0, %xmm0
-  emitRegInst(X86::XORPSrr, 0, 0);
+   labeledBlockBeginningOffset = DFOS->size();
   
   // done for a single row
   for(int i = 0 ; i < rowLength ; i++){
-    //movslq "i*4"(%rcx,%r9,4), %rax
-    emitMOVSLQInst(X86::RAX, X86::RCX, X86::R9, 4, i*4);
-    //movsd "i*8"(%r8,%r9,8), %xmm1
-    emitMOVSDrmInst(i*8, X86::R8, X86::R9, 8, 1);
-    //mulsd (%rdi,%rax,8), %xmm1
-    emitMULSDrmInst(0, X86::RDI, X86::RAX, 8, 1);
-    //addsd %xmm1, %xmm0
-    emitRegInst(X86::ADDSDrr, 1, 0);
+
+   //	    vldr    d17, [r2, i*8]
+		  emitVLDRArmInst(ARM::D17, ARM::R2, i*8);
+		  printf("vldr    d17, [r2, #%d]\n",i*8);
+
+   //		ldr     r5, [r1, i*4]
+		  emitLDRArmInst(ARM::R5, ARM::R1, i*4);
+		  printf("ldr     r5, [r1, #%d]\n",i*4);
+
+   //     add     r5, lr, r5, lsl #3
+		  emitADDArmInst(ARM::R5, ARM::LR, ARM::R5, 3);
+		  printf("add     r5, lr, r5, lsl #3 \n");
+
+   //		vldr    d20, [r5]
+		  emitVLDRArmInst(ARM::D20, ARM::R5, 0x0);
+		  printf("vldr    d20, [r5]\n");
+
+   //     vmul.f64        d17, d17, d20
+		  emitVMULArmInst(ARM::D17, ARM::D17, ARM::D20);
+		  printf("vmul.f64        d17, d17, d20 \n");
+
+   //	    vadd.f64        d16, d16, d17
+		  emitVADDArmInst(ARM::D16, ARM::D16, ARM::D17);
+		  printf("vadd.f64        d16, d16, d17 \n");
+
   }
   
-  // movslq (%rdx,%rbx,4), %rax
-  emitMOVSLQInst(X86::RAX, X86::RDX, X86::RBX, 4, 0);
-  
-  //addq $rowLength, %r9
-  emitADDQInst(rowLength, X86::R9);
-  
-  //addq $1, %rbx
-  emitADDQInst(1, X86::RBX);
-  
-  //addsd (%rsi,%rax,8), %xmm0
-  emitADDSDrmInst(0, X86::RSI, X86::RAX, 8, 0);
-  
-  //cmpl numRows, %ebx
-  emitCMP32riInst(X86::EBX, numRows);
-  
-  //movsd %xmm0, (%rsi,%rax,8)
-  emitMOVSDmrInst(0, 0, X86::RSI, X86::RAX, 8);
-  //jne .LBB0_1
-  emitJNEInst(labeledBlockBeginningOffset);
-  
-  //addq $numRows*4, %rdx
-  emitADDQInst(numRows*4, X86::RDX);
-  
-  //addq $numRows*rowLength*4, %rcx
-  emitADDQInst(numRows*rowLength*4, X86::RCX);
-  //addq $numRows*rowLength*8, %r8
-  emitADDQInst(numRows*rowLength*8, X86::R8);
-#endif
+  //ldr     r5, [r0, r3]
+  emitLDRArmInst(ARM::R5, ARM::R0, ARM::R3);
+  printf("ldr     r5, [r0, r3] \n");
+
+  //add     r5, r4, r5, lsl #3
+  emitADDArmInst(ARM::R5, ARM::R4, ARM::R5, 3);
+  printf("add     r5, r4, r5, lsl #3 \n");
+
+  //vldr    d18, [r5]
+  emitVLDRArmInst(ARM::D18, ARM::R5, 0x0);
+  printf("vldr d18, [r5] \n");
+
+  //vadd.f64        d16, d18, d16
+  emitVADDArmInst(ARM::D16, ARM::D18, ARM::D16);
+  printf("vadd.f64        d16, d18, d16 \n");
+
+  //vstr    d16, [r5]
+  emitVSTRArmInst(ARM::D16, ARM::R5);
+  printf("vstr    d16, [r5] \n");
+
+  //add     r2, r2, #24
+  emitADDArmInst(ARM::R2, ARM::R2, 24, 0);
+  printf ("add     r2, r2, #24 \n");
+
+  //add     r1, r1, #12
+  emitADDArmInst(ARM::R1, ARM::R1, 12, 0);
+  printf("add     r1, r1, #12 \n");
+
+  //add     r3, r3, #4
+  emitADDArmInst(ARM::R3, ARM::R3, 4, 0);
+  printf("add     r3, r3, #4 \n");
+
+  //cmp     r3, #400
+  emitCMPArmInst(ARM::R3, numRows);
+  printf("cmp     r3, #%d \n",numRows);
+
+  //bne     .LBB0_1
+  emitBNEArmInst(labeledBlockBeginningOffset);
+  printf("bne     .LBB0_1\n");
 }

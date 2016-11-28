@@ -770,4 +770,53 @@ void SpMVCodeEmitter::emitFPNegation(unsigned xmmRegisterNumber) {
   DFOS->append(data, dataPtr);
 }
 
+//	    vldr    d17, [r2, i*8]
+void SpMVCodeEmitter::emitVLDRArmInst(unsigned dest_d, unsigned base_r, int offset)
+{
+}
+
+//		ldr     r5, [r1, i*4]
+void SpMVCodeEmitter::emitLDRArmInst(unsigned dest_r, unsigned base_r, int offset)
+{
+}
+
+//     add     r5, lr, r5, lsl #3
+void SpMVCodeEmitter::emitADDArmInst(unsigned dest_r, unsigned base1_r, unsigned base2_r, int scaler)
+{
+}
+
+//     vmul.f64        d17, d17, d20
+void SpMVCodeEmitter::emitVMULArmInst(unsigned dest_d, unsigned base1_d, unsigned base2_d)
+{
+}
+
+//	    vadd.f64        d16, d16, d17
+void SpMVCodeEmitter::emitVADDArmInst(unsigned dest_d, unsigned base1_d, unsigned base2_d)
+{
+}
+
+//vmov.i32        d16, #0x0
+void SpMVCodeEmitter::emitVMOVI32ArmInst(unsigned dest_d, int value)
+{
+}
+
+//mov     r3, #0
+void SpMVCodeEmitter::emitMOVArmInst(unsigned base_r, int value)
+{
+}
+
+//vstr    d16, [r5]
+void SpMVCodeEmitter::emitVSTRArmInst(unsigned dest_d, unsigned base_r)
+{
+}
+
+//cmp     r3, #400
+void SpMVCodeEmitter::emitCMPArmInst(unsigned dest_r, unsigned int value)
+{
+}
+
+//bne     .LBB0_1
+void SpMVCodeEmitter::emitBNEArmInst(long destinationAddress)
+{
+}
 

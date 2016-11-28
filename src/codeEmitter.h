@@ -45,6 +45,19 @@ namespace spMVgen {
 
     void emitFPNegation(unsigned xmmRegisterNumber);
 
+
+
+    void emitVLDRArmInst(unsigned dest_d, unsigned base_r, int offset);
+    void emitLDRArmInst(unsigned dest_r, unsigned base_r, int offset);
+    void emitADDArmInst(unsigned dest_r, unsigned base1_r, unsigned base2_r, int scaler);
+    void emitVMULArmInst(unsigned dest_d, unsigned base1_d, unsigned base2_d);
+    void emitVADDArmInst(unsigned dest_d, unsigned base1_d, unsigned base2_d);
+    void emitVMOVI32ArmInst(unsigned dest_d, int value);
+    void emitMOVArmInst(unsigned base_r, int value);
+    void emitVSTRArmInst(unsigned dest_d, unsigned base_r);
+    void emitCMPArmInst(unsigned dest_r, unsigned int value);
+    void emitBNEArmInst(long destinationAddress);
+
   protected:
     llvm::SmallVectorImpl<char> *DFOS;
 

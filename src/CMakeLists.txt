@@ -5,7 +5,7 @@ message(STATUS "System is " ${CMAKE_SYSTEM_NAME})
 message(STATUS "Compiler is " ${CMAKE_CXX_COMPILER_ID})
 message(STATUS ${llvm_libs})
 message(${CMAKE_SOURCE_DIR})
-set(LLVM_DIR "/home/hadia/llvm/build_350/share/llvm/cmake/")
+set(LLVM_DIR "/home/hadi/llvm/build_350Ninja/share/llvm/cmake/")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/../modules/")
 message(${CMAKE_MODULE_PATH})
 find_package(LLVM 3.5.0 REQUIRED CONFIG)
@@ -15,6 +15,7 @@ find_package(MKL)
 include_directories(${LLVM_INCLUDE_DIRS}
                     ${LLVM_BUILD_MAIN_SRC_DIR}
                     ${LLVM_BUILD_BINARY_DIR}/lib/Target/X86/
+                    ${LLVM_BUILD_BINARY_DIR}/lib/Target/ARM/
                     ${MKL_INCLUDE_DIRS})
 link_directories(${MKL_LIBRARIES})
 add_definitions(${LLVM_DEFINITIONS})

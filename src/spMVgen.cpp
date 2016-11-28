@@ -31,11 +31,11 @@
 #include "llvm/Support/TargetRegistry.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/ToolOutputFile.h"
-
+#if defined(__linux__) && defined(__x86_64__)
 #include "lib/Target/X86/X86TargetObjectFile.h"
-
+#else
 #include "lib/Target/ARM/ARMTargetObjectFile.h"
-
+#endif
 #include "llvm/Target/TargetLoweringObjectFile.h"
 #include "llvm/Support/DynamicLibrary.h"
 #include "llvm/ExecutionEngine/SectionMemoryManager.h"
@@ -167,13 +167,18 @@ TargetLoweringObjectFile *getMCObjectFileInfo(Triple &TheTriple) {
 //printf("getArch %d, getOs :%d \n",TheTriple.getArch(), TheTriple.getOS());
  
   TargetLoweringObjectFile *mcObjectFileInfo = NULL;
+#if defined(__linux__) && defined(__x86_64__)
   if(TheTriple.getArch() == Triple::x86_64 && TheTriple.getOS() == Triple::Darwin) {
     mcObjectFileInfo = new X86_64MachoTargetObjectFile();
   } else if(TheTriple.getArch() == Triple::x86_64 && TheTriple.getOS() == Triple::Linux) {
     mcObjectFileInfo = new X86LinuxTargetObjectFile();
-  } else if(TheTriple.getArch() == Triple::arm && TheTriple.getOS() == Triple::Linux) {
+  } else
+#else
+ if(TheTriple.getArch() == Triple::arm && TheTriple.getOS() == Triple::Linux) {
     mcObjectFileInfo = new ARMElfTargetObjectFile();
-  } else {
+  } else
+#endif
+ {
     cerr << "Only X86_64 on Linux or MacOS is supported.\n";
     exit(1);
   }
