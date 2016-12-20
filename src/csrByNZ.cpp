@@ -125,7 +125,7 @@ void CSRbyNZCodeEmitter::emit() {
 //    unsigned long rowLength = rowByNZ.first;
 //    dumpSingleLoop(rowByNZ.second.getRowIndices()->size(), rowLength);
 //  }  
-    dumpSingleLoop(400, 3);
+    dumpSingleLoop(100, 4);
  
  // dumpPushPopFooter();
   emitRETInst();
@@ -164,87 +164,117 @@ void CSRbyNZCodeEmitter::dumpPushPopFooter() {
 
 void CSRbyNZCodeEmitter::dumpSingleLoop(unsigned long numRows, unsigned long rowLength) {
 
+
+//printf("arm:r15 :%d \n",ARM::R15); 
   unsigned long labeledBlockBeginningOffset = 0;
   
   //mov     r3, #0
+  // 0:       00 30 a0 e3          mov     r3, #0
   emitMOVArmInst(ARM::R3, 0x0);
-  printf("mov     r3, #0 \n");
+  emitMOVWArmInst(ARM::R9, numRows*4);
+   
+
+ // printf("mov     r3, #0 \n");
 
   //vmov.i32        d16, #0x0
+  //10 00 c0 f2
   emitVMOVI32ArmInst(ARM::D16, 0x0);
-  printf("vmov.i32        d16, #0x0 \n");
+ // printf("vmov.i32        d16, #0x0 \n");
 
   //.align 16, 0x90
 //  emitCodeAlignment(16);
   //.LBB0_1:
    labeledBlockBeginningOffset = DFOS->size();
+//printf("labeled blog %d\n",labeledBlockBeginningOffset);
   
   // done for a single row
   for(int i = 0 ; i < rowLength ; i++){
-
+//1c:
    //	    vldr    d17, [r2, i*8]
-		  emitVLDRArmInst(ARM::D17, ARM::R2, i*8);
-		  printf("vldr    d17, [r2, #%d]\n",i*8);
+   //edd21b00  //0
+   //edd21b02  //8
+   //edd21b04  //16
+		  emitVLDRArmInst(ARM::D17, ARM::R2, i);
+//		  printf("vldr    d17, [r2, #%d]\n",i*8);
 
    //		ldr     r5, [r1, i*4]
-		  emitLDRArmInst(ARM::R5, ARM::R1, i*4);
-		  printf("ldr     r5, [r1, #%d]\n",i*4);
+   //e5915000  // 0
+   //e5915004
+   //e5915008
+		  emitLDROffsetArmInst(ARM::R5, ARM::R1, i); // i*4 bir registera atilip ldr register kullanilabilir. bu sekilde en son cols +=400 buraya eklenebilir. 
+//		  printf("ldr     r5, [r1, #%d]\n",i*4);
 
    //     add     r5, lr, r5, lsl #3
-		  emitADDArmInst(ARM::R5, ARM::LR, ARM::R5, 3);
-		  printf("add     r5, lr, r5, lsl #3 \n");
+   //e08e5185
+		  emitADDRegisterArmInst(ARM::R5, ARM::R6, ARM::R5, 3);
+//		  printf("add     r5, lr, r5, lsl #3 \n");
 
    //		vldr    d20, [r5]
+   //edd54b00
 		  emitVLDRArmInst(ARM::D20, ARM::R5, 0x0);
-		  printf("vldr    d20, [r5]\n");
+//		  printf("vldr    d20, [r5]\n");
 
    //     vmul.f64        d17, d17, d20
+   //ee611ba4
 		  emitVMULArmInst(ARM::D17, ARM::D17, ARM::D20);
-		  printf("vmul.f64        d17, d17, d20 \n");
+//		  printf("vmul.f64        d17, d17, d20 \n");
 
    //	    vadd.f64        d16, d16, d17
+   //ee700ba1
+
 		  emitVADDArmInst(ARM::D16, ARM::D16, ARM::D17);
-		  printf("vadd.f64        d16, d16, d17 \n");
+//		  printf("vadd.f64        d16, d16, d17 \n");
 
   }
   
   //ldr     r5, [r0, r3]
-  emitLDRArmInst(ARM::R5, ARM::R0, ARM::R3);
-  printf("ldr     r5, [r0, r3] \n");
+  //e7905003
+  emitLDRRegisterArmInst(ARM::R5, ARM::R0, ARM::R3);
+ // printf("ldr     r5, [r0, r3] \n");
 
   //add     r5, r4, r5, lsl #3
-  emitADDArmInst(ARM::R5, ARM::R4, ARM::R5, 3);
-  printf("add     r5, r4, r5, lsl #3 \n");
+  //e0845185
+  emitADDRegisterArmInst(ARM::R5, ARM::R4, ARM::R5, 3);
+ // printf("add     r5, r4, r5, lsl #3 \n");
 
   //vldr    d18, [r5]
+  //edd52b00
   emitVLDRArmInst(ARM::D18, ARM::R5, 0x0);
-  printf("vldr d18, [r5] \n");
+ // printf("vldr d18, [r5] \n");
 
   //vadd.f64        d16, d18, d16
+  //ee720ba0
   emitVADDArmInst(ARM::D16, ARM::D18, ARM::D16);
-  printf("vadd.f64        d16, d18, d16 \n");
+ // printf("vadd.f64        d16, d18, d16 \n");
 
   //vstr    d16, [r5]
+  //edc50b00
   emitVSTRArmInst(ARM::D16, ARM::R5);
-  printf("vstr    d16, [r5] \n");
+  //printf("vstr    d16, [r5] \n");
 
   //add     r2, r2, #24
-  emitADDArmInst(ARM::R2, ARM::R2, 24, 0);
-  printf ("add     r2, r2, #24 \n");
+  //e2822018
+  emitADDOffsetArmInst(ARM::R2, ARM::R2, 8*rowLength);
+ 
+// printf ("add     r2, r2, #24 \n");
 
   //add     r1, r1, #12
-  emitADDArmInst(ARM::R1, ARM::R1, 12, 0);
-  printf("add     r1, r1, #12 \n");
+  //e281100c
+  emitADDOffsetArmInst(ARM::R1, ARM::R1, 4*rowLength);
+ // printf("add     r1, r1, #12 \n");
 
   //add     r3, r3, #4
-  emitADDArmInst(ARM::R3, ARM::R3, 4, 0);
-  printf("add     r3, r3, #4 \n");
+  //e2833004
+  emitADDOffsetArmInst(ARM::R3, ARM::R3, 4);//add yerine ldr offseti kullansak?
+ // printf("add     r3, r3, #4 \n");
 
   //cmp     r3, #400
-  emitCMPArmInst(ARM::R3, numRows);
-  printf("cmp     r3, #%d \n",numRows);
+  //e3530e19
+  emitCMPRegisterArmInst(ARM::R3, ARM::R9);
+ // printf("cmp     r3, #%d \n",numRows);
 
   //bne     .LBB0_1
+  //  88:   1affffe3        bne     1c <_Z4spmvPiS_Pd+0x1c>
   emitBNEArmInst(labeledBlockBeginningOffset);
-  printf("bne     .LBB0_1\n");
+//  printf("bne     .LBB0_1\n");
 }

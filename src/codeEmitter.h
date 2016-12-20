@@ -48,14 +48,18 @@ namespace spMVgen {
 
 
     void emitVLDRArmInst(unsigned dest_d, unsigned base_r, int offset);
-    void emitLDRArmInst(unsigned dest_r, unsigned base_r, int offset);
-    void emitADDArmInst(unsigned dest_r, unsigned base1_r, unsigned base2_r, int scaler);
+    void emitLDROffsetArmInst(unsigned dest_r, unsigned base_r, int offset);
+    void emitLDRRegisterArmInst(unsigned dest_r, unsigned base_r, unsigned offset_register);
+    void emitADDRegisterArmInst(unsigned dest_r, unsigned base1_r, unsigned base2_r, int scaler);
+void emitADDOffsetArmInst(unsigned dest_r, unsigned base1_r, int offset);
     void emitVMULArmInst(unsigned dest_d, unsigned base1_d, unsigned base2_d);
     void emitVADDArmInst(unsigned dest_d, unsigned base1_d, unsigned base2_d);
     void emitVMOVI32ArmInst(unsigned dest_d, int value);
     void emitMOVArmInst(unsigned base_r, int value);
+    void emitMOVWArmInst(unsigned base_r, int value);
     void emitVSTRArmInst(unsigned dest_d, unsigned base_r);
-    void emitCMPArmInst(unsigned dest_r, unsigned int value);
+//    void emitCMPConstantArmInst(unsigned dest_r, unsigned int value);// 
+void emitCMPRegisterArmInst(unsigned dest_r, unsigned base_r);
     void emitBNEArmInst(long destinationAddress);
 
   protected:
