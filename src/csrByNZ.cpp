@@ -125,7 +125,7 @@ void CSRbyNZCodeEmitter::emit() {
 //    unsigned long rowLength = rowByNZ.first;
 //    dumpSingleLoop(rowByNZ.second.getRowIndices()->size(), rowLength);
 //  }  
-    dumpSingleLoop(100, 4);
+    dumpSingleLoop(100, 3);
  
   dumpPushPopFooter();
   emitRETInst();

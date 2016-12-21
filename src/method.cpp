@@ -1077,7 +1077,24 @@ void SpMVCodeEmitter::emitCMPRegisterArmInst(unsigned dest_r, unsigned base_r)
 //bne     .LBB0_1
 void SpMVCodeEmitter::emitBNEArmInst(long destinationAddress)
 {
-          //bne     .LBB0_1
+  //  printf("size : %d , dest : %d\n",DFOS->size(),destinationAddress);
+int target = DFOS->size() - destinationAddress + 4;
+//printf("target :%d \n",target);
+target = target >> 2;
+
+	unsigned char data[4];
+    unsigned char *dataPtr = data;
+
+        *(dataPtr++) = 0xFF - target;
+        *(dataPtr++) = 0xFF;
+        *(dataPtr++) = 0xFF;
+        *(dataPtr++) = 0x1a;
+
+        DFOS->append(data, dataPtr);
+
+
+//printf("target :%d \n",target);
+        //bne     .LBB0_1
   //  88:   1affffe3        bne     1c <_Z4spmvPiS_Pd+0x1c>
 }
 
