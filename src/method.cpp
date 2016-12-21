@@ -1081,3 +1081,31 @@ void SpMVCodeEmitter::emitBNEArmInst(long destinationAddress)
   //  88:   1affffe3        bne     1c <_Z4spmvPiS_Pd+0x1c>
 }
 
+void SpMVCodeEmitter::emitPushArmInst(long pushed_r)
+{
+	unsigned char data[4];
+    unsigned char *dataPtr = data;
+	unsigned pushed = pushed_r - ARM::R0;
+
+        *(dataPtr++) = (0x01 << pushed) & 0xFF;
+        *(dataPtr++) = ((0x01 << pushed) & 0xFF00)>>8;
+        *(dataPtr++) = 0x2d;
+        *(dataPtr++) = 0xe9;
+
+        DFOS->append(data, dataPtr);
+}
+
+void SpMVCodeEmitter::emitPopArmInst(long pushed_r)
+{
+	unsigned char data[4];
+    unsigned char *dataPtr = data;
+	unsigned pushed = pushed_r - ARM::R0;
+
+        *(dataPtr++) = (0x01 << pushed) & 0xFF;
+        *(dataPtr++) = ((0x01 << pushed) & 0xFF00)>>8;
+        *(dataPtr++) = 0xbd;
+        *(dataPtr++) = 0xe8;
+
+        DFOS->append(data, dataPtr);
+}
+

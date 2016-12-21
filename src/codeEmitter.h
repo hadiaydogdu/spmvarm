@@ -61,6 +61,8 @@ void emitADDOffsetArmInst(unsigned dest_r, unsigned base1_r, int offset);
 //    void emitCMPConstantArmInst(unsigned dest_r, unsigned int value);// 
 void emitCMPRegisterArmInst(unsigned dest_r, unsigned base_r);
     void emitBNEArmInst(long destinationAddress);
+    void emitPushArmInst(long pushed_r);
+    void emitPopArmInst(long pushed_r);
 
   protected:
     llvm::SmallVectorImpl<char> *DFOS;

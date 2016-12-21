@@ -118,7 +118,7 @@ rowByNZs(rowByNZs), baseValsIndex(baseValsIndex), baseRowsIndex(baseRowsIndex) {
 }
 
 void CSRbyNZCodeEmitter::emit() {
-//  dumpPushPopHeader();
+  dumpPushPopHeader();
 
 
 //  for (auto &rowByNZ : *rowByNZs) {
@@ -127,7 +127,7 @@ void CSRbyNZCodeEmitter::emit() {
 //  }  
     dumpSingleLoop(100, 4);
  
- // dumpPushPopFooter();
+  dumpPushPopFooter();
   emitRETInst();
 }
   
@@ -146,7 +146,12 @@ void CSRbyNZCodeEmitter::dumpPushPopHeader() {
   emitLEAQInst(X86::RDX, X86::RDX, (int)(sizeof(int) * baseRowsIndex));
   emitLEAQInst(X86::RCX, X86::RCX, (int)(sizeof(int) * baseValsIndex));
   emitLEAQInst(X86::R8, X86::R8, (int)(sizeof(double) * baseValsIndex));
+#else
+   emitPushArmInst(ARM::R4);
+   emitPushArmInst(ARM::R5);
+   emitPushArmInst(ARM::R6);
 #endif
+
 }
 
 void CSRbyNZCodeEmitter::dumpPushPopFooter() {
@@ -159,6 +164,10 @@ void CSRbyNZCodeEmitter::dumpPushPopFooter() {
   emitPushPopInst(X86::POP64r, X86::R10);
   emitPushPopInst(X86::POP64r, X86::R9);
   emitPushPopInst(X86::POP64r, X86::R8);
+#else
+emitPopArmInst(ARM::R4);
+emitPopArmInst(ARM::R5);
+emitPopArmInst(ARM::R6);
 #endif
 }
 
