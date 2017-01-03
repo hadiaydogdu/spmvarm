@@ -193,7 +193,6 @@ int main(int argc, const char *argv[]) {
     fptrs = specializer.getMultByMFunctions();
   }
   END_TIME_PROFILE(codeGeneration);
-  
   unsigned long n = csrMatrix->n;
   unsigned long nz = csrMatrix->nz;
   double *v = new double[n];
@@ -204,7 +203,6 @@ int main(int argc, const char *argv[]) {
   for(int i = 0; i < n; ++i) {
     v[i] = i;
   }
-
   unsigned int ITERS;
   if (nz < 5000) {
     ITERS = 500000;
@@ -225,7 +223,6 @@ int main(int argc, const char *argv[]) {
   } else {
     ITERS = 200;
   }
-  
   if (__DEBUG__) {
     ITERS = 1;
   }
@@ -234,26 +231,24 @@ int main(int argc, const char *argv[]) {
   START_TIME_PROFILE(multByM);
   if (fptrs.size() == 1) {
     for (int i=0; i < ITERS; i++) {
-      fptrs[0](v, w, matrix->rows, matrix->cols, matrix->vals);
+      fptrs[0](matrix->rows, matrix->cols, matrix->vals,v, w);
     }
   } else {    
     for (unsigned i=0; i < ITERS; i++) {
       #pragma omp parallel for
       for (unsigned j = 0; j < fptrs.size(); j++) {
-        fptrs[j](v, w, matrix->rows, matrix->cols, matrix->vals);
+        fptrs[j](matrix->rows, matrix->cols, matrix->vals,v, w);
       }
     }
   }
   END_TIME_PROFILE(multByM);
-
   if (__DEBUG__) {
     for(int i = 0; i < n; ++i) 
       printf("%g\n", w[i]);
   } else {
-    Profiler::print(ITERS);
+    Profiler::print(ITERS);  
     std::cout << "0" << std::setw(10) << ITERS << " times    iterated\n";
   }
-
   /* Normally, a cleanup as follows is the client's responsibility.
      Because we're aliasing some pointers in the returned matrices
      for Unfolding, MKL, and PlainCSR, these deallocations would cause

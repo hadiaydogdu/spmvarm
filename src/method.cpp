@@ -46,6 +46,7 @@ void SpMVMethod::setMCStreamer(llvm::MCStreamer *Str) {
 
 void SpMVMethod::dumpMultByMFunctions() {
   dumpAssemblyText();
+//printf("%s %s END\n",__FILE__,__FUNCTION__);
 }
 
 llvm::SmallVectorImpl<char> *SpMVCodeEmitter::createNewDFOS(MCStreamer *Str, unsigned int index) {
@@ -610,10 +611,12 @@ void SpMVCodeEmitter::emitCodeAlignment(unsigned int alignment) {
 }
 
 void SpMVCodeEmitter::emitRETInst() {
+#if defined(__linux__) && defined(__x86_64__)
   unsigned char data[1];
   unsigned char *dataPtr = data;
   *(dataPtr++) = 0xc3;
   DFOS->append(data, dataPtr);
+#endif
 }
 
 // addsd offset(%baseRegister), %xmmN
@@ -772,33 +775,28 @@ void SpMVCodeEmitter::emitFPNegation(unsigned xmmRegisterNumber) {
   DFOS->append(data, dataPtr);
 }
 
-
-
-
 //          vldr    d17, [r2, i*8]
 void SpMVCodeEmitter::emitVLDRArmInst(unsigned dest_d, unsigned base_r, int offset)
 {
-           //       vldr    d17, [r2, i*8]
-   //edd21b00  //0
-   //edd21b02  //8
-   //edd21b04  //16
+    //vldr    d17, [r2, i*8]
+    //edd21b00  //0
+    //edd21b02  //8
+    //edd21b04  //16
 
-    //          vldr    d20, [r5]
-   //edd54b00
-     //vldr    d18, [r5]
-  //edd52b00
+    //vldr    d20, [r5]
+    //edd54b00
+    //vldr    d18, [r5]
+    //edd52b00
 
     unsigned char data[4];
     unsigned char *dataPtr = data;
-        unsigned base = base_r - ARM::R0;
-        unsigned dest = dest_d - ARM::D16;
-        *(dataPtr++) = 0xFF & (offset*2);
-        *(dataPtr++) = (dest<<4)|0x0b;
-        *(dataPtr++) = 0xd0|(base&0x0f);
-        *(dataPtr++) = 0xed;
-        DFOS->append(data, dataPtr);
- //printf("%02x%02x%02x%02x\n",0xFF & (offset*2), (dest <<4)| 0x0b, 0xd0 | (base&0x0f), 0xed);
-
+    unsigned base = base_r - ARM::R0;
+    unsigned dest = dest_d - ARM::D16;
+    *(dataPtr++) = 0xFF & (offset*2);
+    *(dataPtr++) = (dest<<4)|0x0b;
+    *(dataPtr++) = 0xd0|(base&0x0f);
+    *(dataPtr++) = 0xed;
+    DFOS->append(data, dataPtr);
 }
 
 //              ldr     r5, [r1, i*4]
@@ -817,14 +815,12 @@ void SpMVCodeEmitter::emitLDRRegisterArmInst(unsigned dest_r, unsigned base_r, u
     unsigned dest = dest_r - ARM::R0;
     unsigned base = base_r - ARM::R0;
     unsigned offset = offset_register - ARM::R0;
-        *(dataPtr++) = 0x00 | (offset&0x0F);
-        *(dataPtr++) = ((dest<<4)&0xF0);
-        *(dataPtr++) = 0x90 | (base&0x0F);
-        *(dataPtr++) = 0xe7;
+    *(dataPtr++) = 0x00 | (offset&0x0F);
+    *(dataPtr++) = ((dest<<4)&0xF0);
+    *(dataPtr++) = 0x90 | (base&0x0F);
+    *(dataPtr++) = 0xe7;
 
-        DFOS->append(data, dataPtr);
-      //printf("%02x%02x%02x%02x\n",0xFF & (offset*4), ((dest<<4)&0xF0), 0x90 | (base&0x0F), 0xe5);
-
+    DFOS->append(data, dataPtr);
 }
 
 void SpMVCodeEmitter::emitLDROffsetArmInst(unsigned dest_r, unsigned base_r, int offset)
@@ -836,27 +832,27 @@ void SpMVCodeEmitter::emitLDROffsetArmInst(unsigned dest_r, unsigned base_r, int
     unsigned char *dataPtr = data;
     unsigned dest = dest_r - ARM::R0;
     unsigned base = base_r - ARM::R0;
-        *(dataPtr++) = 0xFF & (offset*4);
-        *(dataPtr++) = ((dest<<4)&0xF0);
-        *(dataPtr++) = 0x90 | (base&0x0F);
-        *(dataPtr++) = 0xe5;
+	if (base_r == ARM::SP)
+		base = 0x0d;
+    *(dataPtr++) = 0xFF & (offset*4);
+    *(dataPtr++) = ((dest<<4)&0xF0);
+    *(dataPtr++) = 0x90 | (base&0x0F);
+    *(dataPtr++) = 0xe5;
 
-        DFOS->append(data, dataPtr);
-      //printf("%02x%02x%02x%02x\n",0xFF & (offset*4), ((dest<<4)&0xF0), 0x90 | (base&0x0F), 0xe5);
-
+    DFOS->append(data, dataPtr);
 }
 
 
 //     add     r5, lr, r5, lsl #3
 void SpMVCodeEmitter::emitADDRegisterArmInst(unsigned dest_r, unsigned base1_r, unsigned base2_r, int scaler)
 {
-        //e08e5185
-            unsigned char data[4];
+    //e08e5185
+    unsigned char data[4];
     unsigned char *dataPtr = data;
 
-  //add     r5, r4, r5, lsl #3  ?
-  //e0845185
- //e08e5005 	add	r5, lr, r5
+//add     r5, r4, r5, lsl #3  ?
+//e0845185
+//e08e5005 	add	r5, lr, r5
 //0x82 0x41 0x8e 0xe0 add	r4, lr, r2, lsl #3
 //0x82 0x51 0x8e 0xe0  add	r5, lr, r2, lsl #3
 //0x85 0x51 0x8e 0xe0 add	r5, lr, r5, lsl #3
@@ -871,21 +867,38 @@ void SpMVCodeEmitter::emitADDRegisterArmInst(unsigned dest_r, unsigned base1_r, 
 //0x05 0x52 0x8e 0xe0  add	r5, lr, r5, lsl #4
 //0x05 0x53 0x8e 0xe0 	add	r5, lr, r5, lsl #6
 
-    
-
     unsigned dest = dest_r - ARM::R0;
-    unsigned base1 = base1_r - ARM::R0;
-    unsigned base2 = base2_r - ARM::R0;
-	
-    unsigned char scaler_odd = (scaler%2)==1 ? 0x80 : 0x00;
-	
+    unsigned base1;
+if (base1_r >= ARM::R0)
+    base1 = base1_r - ARM::R0;
+else{
+	if(base1_r == ARM::SP) 
+  	   base1 = 0xd;
+	else if(base1_r == ARM::LR) 
+  	   base1 = 0xe;
+	else if(base1_r == ARM::PC) 
+  	   base1 = 0xf;
+	}
 
-        *(dataPtr++) = scaler_odd | (base2&0x0F);
-        *(dataPtr++) = (scaler>>1) | ((dest<<4)&0xF0);
-        *(dataPtr++) = 0x80 | (base1&0x0F);
-        *(dataPtr++) = 0xe0;
-        DFOS->append(data, dataPtr);
-//printf("%02x%02x%02x%02x\n",0x85, 0x51, 0x8e, 0xe0);
+    unsigned base2;
+if (base2_r >= ARM::R0)
+    base2 = base2_r - ARM::R0;
+else{
+	if(base2_r == ARM::SP) 
+  	   base2 = 0xd;
+	else if(base2_r == ARM::LR) 
+  	   base2 = 0xe;
+	else if(base2_r == ARM::PC) 
+  	   base2 = 0xf;
+	}
+
+    unsigned char scaler_odd = (scaler%2)==1 ? 0x80 : 0x00;
+
+    *(dataPtr++) = scaler_odd | (base2&0x0F);
+    *(dataPtr++) = (scaler>>1) | ((dest<<4)&0xF0);
+    *(dataPtr++) = 0x80 | (base1&0x0F);
+    *(dataPtr++) = 0xe0;
+    DFOS->append(data, dataPtr);
 }
 
 //     add     r5, lr, #offset
@@ -893,7 +906,7 @@ void SpMVCodeEmitter::emitADDOffsetArmInst(unsigned dest_r, unsigned base_r, int
 { 
     unsigned char data[4];
     unsigned char *dataPtr = data;
-
+//printf("offset :%d \n",offset);
   //add     r2, r2, #24
   //e2822018
   //add     r1, r1, #12
@@ -904,31 +917,27 @@ void SpMVCodeEmitter::emitADDOffsetArmInst(unsigned dest_r, unsigned base_r, int
     unsigned dest = dest_r - ARM::R0;
     unsigned base = base_r - ARM::R0;
 
-
-        *(dataPtr++) = 0xFF & offset;
-        *(dataPtr++) = 0x00 | ((dest<<4)&0xf0);
-        *(dataPtr++) = 0x80 | (base&0x0f);
-        *(dataPtr++) = 0xe2;
-        DFOS->append(data, dataPtr);
-    //printf("%02x%02x%02x%02x\n",0x85, 0x51, 0x8e, 0xe0);
+    *(dataPtr++) = 0xFF & offset;
+    *(dataPtr++) = ((dest<<4)&0xf0);// | ((value>>8)&0xF); ;
+    *(dataPtr++) = 0x80 | (base&0x0f);
+    *(dataPtr++) = 0xe2;
+    DFOS->append(data, dataPtr);
 }
 
 
 //     vmul.f64        d17, d17, d20
 void SpMVCodeEmitter::emitVMULArmInst(unsigned dest_d, unsigned base1_d, unsigned base2_d)
 {
-        //     vmul.f64        d17, d17, d20
+    //     vmul.f64        d17, d17, d20
     //ee611ba4
     unsigned char data[4];
     unsigned char *dataPtr = data;
 
-        *(dataPtr++) = 0xa4;
-        *(dataPtr++) = 0x1b;
-        *(dataPtr++) = 0x61;
-        *(dataPtr++) = 0xee;
-        DFOS->append(data, dataPtr);
-//printf("%02x%02x%02x%02x\n", 0xa4, 0x1b, 0x61,0xee);
-
+    *(dataPtr++) = 0xa4;
+    *(dataPtr++) = 0x1b;
+    *(dataPtr++) = 0x61;
+    *(dataPtr++) = 0xee;
+    DFOS->append(data, dataPtr);
 }
 
 //          vadd.f64        d16, d16, d17
@@ -944,13 +953,11 @@ void SpMVCodeEmitter::emitVADDArmInst(unsigned dest_d, unsigned base1_d, unsigne
     unsigned base1 = base1_d - ARM::D16;
     unsigned base2 = base2_d - ARM::D16;
 
-        *(dataPtr++) = 0xa0 | (base2&0x0f);
-        *(dataPtr++) = 0x0b | ((dest<<4) & 0xf0);
-        *(dataPtr++) = 0x70 | (base1&0x0f);
-        *(dataPtr++) = 0xee;
-        DFOS->append(data, dataPtr);
-//printf("%02x%02x%02x%02x\n",  0xa0 | (base2&0x0f),0x0b | ((dest<<4) & 0xf0), 0x70 | (base1&0x0f), 0xee);
-
+    *(dataPtr++) = 0xa0 | (base2&0x0f);
+    *(dataPtr++) = 0x0b | ((dest<<4) & 0xf0);
+    *(dataPtr++) = 0x70 | (base1&0x0f);
+    *(dataPtr++) = 0xee;
+    DFOS->append(data, dataPtr);
 }
 
 //vmov.i32        d16, #0x0
@@ -958,107 +965,66 @@ void SpMVCodeEmitter::emitVMOVI32ArmInst(unsigned dest_d, int value)
 {
     //vmov.i32        d16, #0x0
     //f2c00010
-        unsigned char data[4];
+    unsigned char data[4];
     unsigned char *dataPtr = data;
     unsigned dest = dest_d - ARM::D16;
-        *(dataPtr++) = 0x10;
-        *(dataPtr++) = ((dest<<4) & 0xf0);
-        *(dataPtr++) = 0xc0;
-        *(dataPtr++) = 0xf2;
+    *(dataPtr++) = 0x10;
+    *(dataPtr++) = ((dest<<4) & 0xf0);
+    *(dataPtr++) = 0xc0;
+    *(dataPtr++) = 0xf2;
 
-        DFOS->append(data, dataPtr);
-//printf("%02x%02x%02x%02x\n",0x10,((dest<<4) & 0xf0),0xc0,0xf2);
-
+    DFOS->append(data, dataPtr);
 }
 
 //mov     r3, #0
 void SpMVCodeEmitter::emitMOVArmInst(unsigned base_r, int value)
 {
         //0x00 0x30 0xa0 0xe3          mov     r3, #0
-        unsigned char data[4];
+    unsigned char data[4];
     unsigned char *dataPtr = data;
     unsigned base = base_r - ARM::R0;
-        *(dataPtr++) = value & 0xFF;
-        *(dataPtr++) = (base<<4)&0xf0; //0x30; //r3
-        *(dataPtr++) = 0xa0;
-        *(dataPtr++) = 0xe3;
+    *(dataPtr++) = value & 0xFF;
+    *(dataPtr++) = (base<<4)&0xf0; //0x30; //r3
+    *(dataPtr++) = 0xa0;
+    *(dataPtr++) = 0xe3;
 
-        DFOS->append(data, dataPtr);
-//printf("%02x%02x%02x%02x\n", value & 0xFF, (base<<4)&0xf0, 0xa0, 0xe3);
+    DFOS->append(data, dataPtr);
 }
 
 //mov     r3, #0
 void SpMVCodeEmitter::emitMOVWArmInst(unsigned base_r, int value)
 {
-        //0x74 0x63 0x01 0xe3   movw	r6, #4980 ;1374
-        // 0xe8 0x63 0x00 0xe3   movw	r6, #1000 ;3e8
+    //0x74 0x63 0x01 0xe3   movw	r6, #4980 ;1374
+    // 0xe8 0x63 0x00 0xe3   movw	r6, #1000 ;3e8
 
-        unsigned char data[4];
+    unsigned char data[4];
     unsigned char *dataPtr = data;
     unsigned base = base_r - ARM::R0;
-        *(dataPtr++) = value & 0xFF;
-        *(dataPtr++) = (base<<4)&0xf0 | ((value>>8)&0xF); //0x30; //r3
-        *(dataPtr++) = 0x00 | ((value>>12)&0xF);
-        *(dataPtr++) = 0xe3;
+    *(dataPtr++) = value & 0xFF;
+    *(dataPtr++) = (base<<4)&0xf0 | ((value>>8)&0xF); //0x30; //r3
+    *(dataPtr++) = 0x00 | ((value>>12)&0xF);
+    *(dataPtr++) = 0xe3;
 
-        DFOS->append(data, dataPtr);
-//printf("%02x%02x%02x%02x\n", value & 0xFF, (base<<4)&0xf0, 0xa0, 0xe3);
+    DFOS->append(data, dataPtr);
 }
-
 
 //vstr    d16, [r5]
 void SpMVCodeEmitter::emitVSTRArmInst(unsigned dest_d, unsigned base_r)
 {
-          //vstr    d16, [r5]
+  //vstr    d16, [r5]
   //edc50b00
-        unsigned char data[4];
+    unsigned char data[4];
     unsigned char *dataPtr = data;
-    unsigned dest = dest - ARM::D16;
+    unsigned dest = dest_d - ARM::D16;
     unsigned base = base_r - ARM::R0;
-        *(dataPtr++) = 0x00;
-        *(dataPtr++) = 0x0b | ((dest<<4)&0xf0);
-        *(dataPtr++) = 0xc0 | (base&0x0f);
-        *(dataPtr++) = 0xed;
+    *(dataPtr++) = 0x00;
+    *(dataPtr++) = 0x0b | ((dest<<4)&0xf0);
+    *(dataPtr++) = 0xc0 | (base&0x0f);
+    *(dataPtr++) = 0xed;
 
-        DFOS->append(data, dataPtr);
-//printf("%02x%02x%02x%02x\n", 0x00,0x0b | ((dest<<4)&0xf0),0xc0 | (base&0x0f),0xed);
+    DFOS->append(data, dataPtr);
 }
-
-//cmp     r3, #400
-/*void SpMVCodeEmitter::emitCMPConstantArmInst(unsigned dest_r, unsigned int value)
-{
-          //cmp     r3, #400
-  //e3530e19  //400   //190
-  //e3530e96  //2400  //0x960
-  //e3530a01        cmp     r3, #4096       ; 0x1000
-  //e3530d7d        cmp     r3, #8000       ; 0x1f40
-  //e3530c1f        cmp     r3, #7936       ; 0x1f00
-  //e3530f65        cmp     r3, #404        ; 0x194
-
-  //8c:   e3530000        cmp     r3, #0
- // 90:   e3530080        cmp     r3, #128        ; 0x80
- // 94:   e35300fc        cmp     r3, #252        ; 0xfc
- // 98:   e3530c01        cmp     r3, #256        ; 0x100
- // 9c:   e3530f7f        cmp     r3, #508        ; 0x1fc
-//  a0:   e3530c02        cmp     r3, #512        ; 0x200
-//  a4:   e3530fff        cmp     r3, #1020       ; 0x3fc
-//  a8:   e3530b01        cmp     r3, #1024       ; 0x400
-//1*4 * 4^(f-c)
-//e3530bxx
-//xx*4 * 4^(f-b)  = value*4  
-
-	unsigned char data[4];
-    unsigned char *dataPtr = data;
-	unsigned dest = dest_r - ARM::R0;
-        *(dataPtr++) = (value>>2) & 0xFF;
-        *(dataPtr++) = 0x0e;
-        *(dataPtr++) = 0x50 | (dest&0x0f);
-        *(dataPtr++) = 0xe3;
-
-        DFOS->append(data, dataPtr);
-//printf("%02x%02x%02x%02x\n",0x19,0x0e,0x53,0xe3);
-}
-*/
+ 
 //e1530006
 void SpMVCodeEmitter::emitCMPRegisterArmInst(unsigned dest_r, unsigned base_r)
 {
@@ -1067,62 +1033,55 @@ void SpMVCodeEmitter::emitCMPRegisterArmInst(unsigned dest_r, unsigned base_r)
 	unsigned dest = dest_r - ARM::R0;
 	unsigned base = base_r - ARM::R0;
 
-        *(dataPtr++) = 0x00 | (base) & 0x0F;
-        *(dataPtr++) = 0x00;
-        *(dataPtr++) = 0x50 | (dest&0x0f);
-        *(dataPtr++) = 0xe1;
+    *(dataPtr++) = 0x00 | (base) & 0x0F;
+    *(dataPtr++) = 0x00;
+    *(dataPtr++) = 0x50 | (dest&0x0f);
+    *(dataPtr++) = 0xe1;
 
-        DFOS->append(data, dataPtr);
+    DFOS->append(data, dataPtr);
 }
 //bne     .LBB0_1
 void SpMVCodeEmitter::emitBNEArmInst(long destinationAddress)
 {
-  //  printf("size : %d , dest : %d\n",DFOS->size(),destinationAddress);
-int target = DFOS->size() - destinationAddress + 4;
-//printf("target :%d \n",target);
-target = target >> 2;
-
+    int target = DFOS->size() - destinationAddress + 4;
+    target = target >> 2;
 	unsigned char data[4];
     unsigned char *dataPtr = data;
 
-        *(dataPtr++) = 0xFF - target;
-        *(dataPtr++) = 0xFF;
-        *(dataPtr++) = 0xFF;
-        *(dataPtr++) = 0x1a;
+    *(dataPtr++) = 0xFF - target;
+    *(dataPtr++) = 0xFF;
+    *(dataPtr++) = 0xFF;
+    *(dataPtr++) = 0x1a;
 
-        DFOS->append(data, dataPtr);
+    DFOS->append(data, dataPtr);
 
-
-//printf("target :%d \n",target);
-        //bne     .LBB0_1
+  //bne     .LBB0_1
   //  88:   1affffe3        bne     1c <_Z4spmvPiS_Pd+0x1c>
 }
 
-void SpMVCodeEmitter::emitPushArmInst(long pushed_r)
+void SpMVCodeEmitter::emitPushArmInst()
 {
 	unsigned char data[4];
-    unsigned char *dataPtr = data;
-	unsigned pushed = pushed_r - ARM::R0;
+    unsigned char *dataPtr = data; 
+	*(dataPtr++) = 0xf0;
+    *(dataPtr++) = 0x4b;
+    *(dataPtr++) = 0x2d;
+    *(dataPtr++) = 0xe9;
 
-        *(dataPtr++) = (0x01 << pushed) & 0xFF;
-        *(dataPtr++) = ((0x01 << pushed) & 0xFF00)>>8;
-        *(dataPtr++) = 0x2d;
-        *(dataPtr++) = 0xe9;
-
-        DFOS->append(data, dataPtr);
+    DFOS->append(data, dataPtr);
 }
 
-void SpMVCodeEmitter::emitPopArmInst(long pushed_r)
+void SpMVCodeEmitter::emitPopArmInst()
 {
+//0x00 0x80 0xbd 0xe8    ldm	sp!, {pc}
 	unsigned char data[4];
     unsigned char *dataPtr = data;
-	unsigned pushed = pushed_r - ARM::R0;
+	 
+	*(dataPtr++) = 0xf0;
+    *(dataPtr++) = 0x8b;
+    *(dataPtr++) = 0xbd;
+    *(dataPtr++) = 0xe8;
 
-        *(dataPtr++) = (0x01 << pushed) & 0xFF;
-        *(dataPtr++) = ((0x01 << pushed) & 0xFF00)>>8;
-        *(dataPtr++) = 0xbd;
-        *(dataPtr++) = 0xe8;
-
-        DFOS->append(data, dataPtr);
+    DFOS->append(data, dataPtr);
 }
 

@@ -164,8 +164,6 @@ void SpMVSpecializer::loadBuffer(ObjectBuffer *Buffer) {
 
 TargetLoweringObjectFile *getMCObjectFileInfo(Triple &TheTriple) {
 
-//printf("getArch %d, getOs :%d \n",TheTriple.getArch(), TheTriple.getOS());
- 
   TargetLoweringObjectFile *mcObjectFileInfo = NULL;
 #if defined(__linux__) && defined(__x86_64__)
   if(TheTriple.getArch() == Triple::x86_64 && TheTriple.getOS() == Triple::Darwin) {
@@ -204,7 +202,6 @@ static inline MCTargetOptions InitMCTargetOptions() {
 // TODO: Memory management.
 void SpMVSpecializer::specialize() {
   // Initialize targets and assembly printers/parsers.
-//#if defined(__linux__) && defined(__x86_64__)
   
   llvm::InitializeAllTargetInfos();
   llvm::InitializeAllTargetMCs();
@@ -281,13 +278,13 @@ void SpMVSpecializer::specialize() {
   
   if (DUMP_OBJECT) {
     cout << svectorOS.str().str();
+
     exit(1);
   }
   
   MemoryBuffer *memBuffer = MemoryBuffer::getMemBuffer(svectorOS.str(), "", false);
   ObjectBuffer *Buffer = new ObjectBuffer(memBuffer);
   loadBuffer(Buffer);
-//#endif
 }
 
 void SpMVSpecializer::setMCStreamer(llvm::MCStreamer *Str) {
