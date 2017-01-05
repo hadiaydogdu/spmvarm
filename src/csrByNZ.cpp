@@ -19,8 +19,8 @@
 using namespace llvm;
 using namespace spMVgen;
 using namespace std;
-static int previous_num_rows = 0;
-static int previous_row_length = 0;
+static int pre_num_rows = 0;
+static int pre_num_rows_row_length = 0;
 extern unsigned int NUM_OF_THREADS;
 
 class CSRbyNZCodeEmitter : public SpMVCodeEmitter {
@@ -119,17 +119,19 @@ rowByNZs(rowByNZs), baseValsIndex(baseValsIndex), baseRowsIndex(baseRowsIndex) {
   this->DFOS = createNewDFOS(Str, partitionIndex);
 }
 
-void CSRbyNZCodeEmitter::emit() {
-  dumpPushPopHeader();
+void CSRbyNZCodeEmitter::emit() 
+{
+    dumpPushPopHeader();
 
-  for (auto &rowByNZ : *rowByNZs) {
-    unsigned long rowLength = rowByNZ.first;
-    dumpSingleLoop(rowByNZ.second.getRowIndices()->size(), rowLength);
-  } 
+    for (auto &rowByNZ : *rowByNZs) 
+    {
+        unsigned long rowLength = rowByNZ.first;
+        dumpSingleLoop(rowByNZ.second.getRowIndices()->size(), rowLength);
+    }
  
-dumpPushPopFooter();
+    dumpPushPopFooter();
 #if defined(__linux__) && defined(__x86_64__)
-emitRETInst();
+    emitRETInst();
 #endif
 }
   
@@ -170,42 +172,43 @@ emitPopArmInst();
 }
 
 void CSRbyNZCodeEmitter::dumpSingleLoop(unsigned long numRows, unsigned long rowLength) {
+    unsigned long labeledBlockBeginningOffset = 0;
+    if (pre_num_rows != 0)
+    {
+        emitMOVWArmInst(ARM::R9, pre_num_rows);
+        emitADDRegisterArmInst(ARM::R0, ARM::R0, ARM::R9, 2);
+        emitMOVWArmInst(ARM::R9, pre_num_rows_row_length);
+        emitADDRegisterArmInst(ARM::R1, ARM::R1,ARM::R9, 2);
+        emitADDRegisterArmInst(ARM::R2, ARM::R2,ARM::R9, 3);
+    }  
+    emitMOVArmInst(ARM::R8, 0x0);
+    emitMOVWArmInst(ARM::R9, numRows*4);
+    emitLDROffsetArmInst( ARM::R6, ARM::SP, 8);
 
-  unsigned long labeledBlockBeginningOffset = 0;
-
-  emitMOVWArmInst(ARM::R9, previous_num_rows);
-  emitADDRegisterArmInst(ARM::R0, ARM::R0, ARM::R9,2);
-  emitMOVWArmInst(ARM::R9, previous_num_rows * previous_row_length);
-  emitADDRegisterArmInst(ARM::R1, ARM::R1,ARM::R9,2);
-  emitADDRegisterArmInst(ARM::R2, ARM::R2,ARM::R9,3);
+    emitMOVArmInst(ARM::R4, 0x0);
+    emitMOVArmInst(ARM::R7, 0x0);
+    emitADDRegisterArmInst(ARM::R4, ARM::R4, ARM::R1, 0x0);
+    emitADDRegisterArmInst(ARM::R7, ARM::R7, ARM::R2, 0x0);
   
-  emitMOVArmInst(ARM::R8, 0x0);
-  emitMOVWArmInst(ARM::R9, numRows*4);
-  emitLDROffsetArmInst( ARM::R6, ARM::SP, 8);
-  emitVMOVI32ArmInst(ARM::D16, 0x0);
-  emitMOVArmInst(ARM::R4, 0x0);
-  emitMOVArmInst(ARM::R7, 0x0);
- emitADDRegisterArmInst(ARM::R4,ARM::R4, ARM::R1,0x0);
-  emitADDRegisterArmInst(ARM::R7,ARM::R7, ARM::R2,0x0);
-  
-  labeledBlockBeginningOffset = DFOS->size();
-
- for(int i = 0 ; i < rowLength ; i++){
-      emitVLDRArmInst(ARM::D17, ARM::R7, i);
-      emitLDROffsetArmInst(ARM::R5, ARM::R4, i);
-      emitADDRegisterArmInst(ARM::R5, ARM::R3, ARM::R5, 3);
-      emitVLDRArmInst(ARM::D20, ARM::R5, 0x0);
-      emitVMULArmInst(ARM::D17, ARM::D17, ARM::D20);
-      emitVADDArmInst(ARM::D16, ARM::D16, ARM::D17);
-  }
+    labeledBlockBeginningOffset = DFOS->size();
+    emitVMOVI32ArmInst(ARM::D16, 0x0);
+    for(int i = 0 ; i < rowLength ; i++)
+    {
+        emitLDROffsetArmInst(ARM::R5, ARM::R4, i);
+        emitVLDRArmInst(ARM::D17, ARM::R7, i);
+        emitADDRegisterArmInst(ARM::R5, ARM::R3, ARM::R5, 3);
+        emitVLDRArmInst(ARM::D20, ARM::R5, 0x0);
+        emitVMULArmInst(ARM::D17, ARM::D17, ARM::D20);
+        emitVADDArmInst(ARM::D16, ARM::D16, ARM::D17);
+    }
 
     emitLDRRegisterArmInst(ARM::R5, ARM::R0, ARM::R8);
     emitADDRegisterArmInst(ARM::R5, ARM::R6, ARM::R5, 3);
 
-    emitVMOVI32ArmInst(ARM::D18, 0x0);
-    emitVLDRArmInst(ARM::D18, ARM::R5, 0x0);
-    emitVADDArmInst(ARM::D18, ARM::D18, ARM::D16);
-    emitVSTRArmInst(ARM::D18, ARM::R5);
+    //emitVMOVI32ArmInst(ARM::D18, 0x0);
+    //emitVLDRArmInst(ARM::D18, ARM::R5, 0x0);
+    //emitVADDArmInst(ARM::D18, ARM::D18, ARM::D16);
+    emitVSTRArmInst(ARM::D16, ARM::R5);
 
     emitADDOffsetArmInst(ARM::R7, ARM::R7, 8*rowLength);
     emitADDOffsetArmInst(ARM::R4, ARM::R4, 4*rowLength);
@@ -213,7 +216,6 @@ void CSRbyNZCodeEmitter::dumpSingleLoop(unsigned long numRows, unsigned long row
     emitCMPRegisterArmInst(ARM::R8, ARM::R9);
     emitBNEArmInst(labeledBlockBeginningOffset);
 
-previous_num_rows =+ numRows;
-previous_row_length =+ rowLength;
-
+    pre_num_rows =+ numRows;
+    pre_num_rows_row_length =+ numRows * rowLength;
 }
