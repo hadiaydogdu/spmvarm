@@ -1,6 +1,7 @@
 #include "method.h"
 
-#if 0//def __linux__
+#ifdef __linux__
+#ifdef __x86_64__
 #include <mkl.h>
 
 int mkl_n = 0;
@@ -14,6 +15,7 @@ void mkl_multByM(double *v, double *w, int *rows, int *cols, double *vals) {
   char matdescra[] = "G__C";
   mkl_dcsrmv(trans, &mkl_n, &mkl_n, &alpha, matdescra, vals, cols, ptrb, ptre, v, &beta, w);
 }
+#endif
 #endif
 
 using namespace spMVgen;
@@ -33,8 +35,13 @@ void MKL::dumpAssemblyText() {
 }
 
 void MKL::setNumOfThreads(unsigned int num) {
-#if 0// def __linux__
+#ifdef __linux__
+#ifdef __x86_64__
   mkl_set_num_threads_local(num);
+#else
+  cerr << "MKL is not supported on this platform.\n";
+  exit(1);
+#endif
 #else
   cerr << "MKL is not supported on this platform.\n";
   exit(1);
@@ -42,11 +49,16 @@ void MKL::setNumOfThreads(unsigned int num) {
 }
 
 std::vector<MultByMFun> MKL::getMultByMFunctions() {
-#if 0//def __linux__
+#ifdef __linux__
+#ifdef __x86_64__
   mkl_n = (int)csrMatrix->n;
   std::vector<MultByMFun> fptrs;
   fptrs.push_back(&mkl_multByM);
   return fptrs;
+#else
+  cerr << "MKL is not supported on this platform.\n";
+  exit(1);
+#endif
 #else
   cerr << "MKL is not supported on this platform.\n";
   exit(1);

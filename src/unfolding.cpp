@@ -3,9 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#if defined(__linux__) && defined(__x86_64__)
 #include "lib/Target/X86/MCTargetDesc/X86BaseInfo.h"
-#endif
 #include "llvm/MC/MCContext.h"
 #include "llvm/MC/MCExpr.h"
 #include "llvm/MC/MCInstBuilder.h"
@@ -172,7 +170,6 @@ void UnfoldingCodeEmitter::emit() {
 }
 
 void UnfoldingCodeEmitter::dumpPushPopHeader() {
-#if defined(__linux__) && defined(__x86_64__)
   // rows is in %rdx, cols is in %rcx, vals is in %r8
   emitPushPopInst(X86::PUSH64r, X86::RDX);
   emitPushPopInst(X86::PUSH64r, X86::RSI);
@@ -182,34 +179,26 @@ void UnfoldingCodeEmitter::dumpPushPopHeader() {
   int firstRow = stripeInfo->rowIndexBegin;
   emitLEAQInst(X86::RSI, X86::RSI, (firstRow * sizeof(double)) / LIMIT_TO_DO_LEAQ * LIMIT_TO_DO_LEAQ);
   numWPointerShiftings = (firstRow * sizeof(double)) / LIMIT_TO_DO_LEAQ;
-#endif
 }
 
 void UnfoldingCodeEmitter::dumpValsPointerAdjustment() {
-#if defined(__linux__) && defined(__x86_64__)
   // Create a copy of vals pointer (R8) in RDX.
   //  leaq "offset"(%r8), %rdx
   emitLEAQInst(X86::R8, X86::RDX, (stripeInfo->valIndexBegin * sizeof(double)) / LIMIT_TO_DO_LEAQ * LIMIT_TO_DO_LEAQ);
-#endif
 }
 
 void UnfoldingWithDistinctValuesCodeEmitter::dumpValsPointerAdjustment() {
-#if defined(__linux__) && defined(__x86_64__)
   // Create a copy of vals pointer (R8) in RDX.
   //  leaq "offset"(%r8), %rdx
   emitLEAQInst(X86::R8, X86::RDX, baseValsIndex * sizeof(double));
-#endif
 }
 
 void UnfoldingCodeEmitter::dumpPushPopFooter() {
-#if defined(__linux__) && defined(__x86_64__)
   emitPushPopInst(X86::POP64r, X86::RSI);
   emitPushPopInst(X86::POP64r, X86::RDX);
-#endif
 }
 
 void UnfoldingCodeEmitter::dumpRow(int rowIndex) {
-#if defined(__linux__) && defined(__x86_64__)
   int rowLength = csrMatrix->rows[rowIndex+1] - csrMatrix->rows[rowIndex];
   if (rowLength == 0) return;
   
@@ -229,7 +218,6 @@ void UnfoldingCodeEmitter::dumpRow(int rowIndex) {
   
   // Finally, write the result to the output vector
   dumpRowConclusion(rowIndex, haveToUseAccumulator);
-#endif
 }
 
 static void splitElements(pair<int, int> range, vector<vector<int> > &partitions, unsigned int chunkSize) {
@@ -262,7 +250,6 @@ void UnfoldingCodeEmitter::partitionRowElements(int rowIndex, vector<vector<int>
 }
 
 void UnfoldingCodeEmitter::dumpPartialRow(vector<vector<int> > &partitions, unsigned partitionIndex, bool haveToAccumulateResult) {
-#if defined(__linux__) && defined(__x86_64__)
   vector<int> &elements = partitions[partitionIndex];
   // Move vector elements to registers
   unsigned int vRegIndex = 0;
@@ -308,19 +295,16 @@ void UnfoldingCodeEmitter::dumpPartialRow(vector<vector<int> > &partitions, unsi
     // xorpd (%rcx), %xmm0
     emitFPNegation(0);
   }
-#endif
 }
 
 unsigned long UnfoldingCodeEmitter::getValIndexAndShiftValsPointer(int elementIndex) {
   unsigned long valIndex = sizeof(double) * elementIndex;
-#if defined(__linux__) && defined(__x86_64__)
   valIndex -= ((stripeInfo->valIndexBegin * sizeof(double)) / LIMIT_TO_DO_LEAQ * LIMIT_TO_DO_LEAQ);
   if (valIndex % LIMIT_TO_DO_LEAQ == 0 && valIndex != 0) {
     //  leaq "LIMIT_TO_DO_LEAQ"(%rdx), %rdx
     emitLEAQInst(X86::RDX, X86::RDX, LIMIT_TO_DO_LEAQ);
   }
   valIndex = valIndex % LIMIT_TO_DO_LEAQ;
-#endif
   return valIndex;
 }
 
@@ -349,7 +333,6 @@ void UnfoldingWithDistinctValuesCodeEmitter::partitionRowElements(int rowIndex, 
 // The goal here is to emit code that will do something like
 // 7*(v[1] + v[5] + v[9])
 void UnfoldingWithDistinctValuesCodeEmitter::dumpPartialRow(vector<vector<int> > &partitions, unsigned partitionIndex, bool haveToAccumulateResult) {
-#if defined(__linux__) && defined(__x86_64__)
   vector<int> &elements = partitions[partitionIndex];
   // Move vector elements to registers
   unsigned int iterIndex = 0;
@@ -409,11 +392,9 @@ void UnfoldingWithDistinctValuesCodeEmitter::dumpPartialRow(vector<vector<int> >
       }
     }
   }
-#endif
 }
 
 void UnfoldingCodeEmitter::dumpRowConclusion(int rowIndex, bool hadToSplitRow) {
-#if defined(__linux__) && defined(__x86_64__)
   int registerThatStoresFinalResult = hadToSplitRow ? REGISTER_LIMIT : 0;
   
   unsigned int numRequiredShiftings = (sizeof(double)*rowIndex) / LIMIT_TO_DO_LEAQ;
@@ -430,11 +411,9 @@ void UnfoldingCodeEmitter::dumpRowConclusion(int rowIndex, bool hadToSplitRow) {
   emitADDSDrmInst(rsiOffset, X86::RSI, registerThatStoresFinalResult);
   //  movsd %xmm0, "sizeof(double)*rowIndex"(%rsi)
   emitMOVSDmrInst(registerThatStoresFinalResult, rsiOffset, X86::RSI);
-#endif
 }
 
 void UnfoldingCodeEmitter::dumpRegisterReduce(vector<bool> &signs) {
-#if defined(__linux__) && defined(__x86_64__)
   unsigned long numElements = signs.size();
   for(int inc=1; inc <= 8; inc *= 2) {
     for(int i=0; i+inc < numElements; i+=inc*2) {
@@ -447,6 +426,5 @@ void UnfoldingCodeEmitter::dumpRegisterReduce(vector<bool> &signs) {
       }
     }
   }
-#endif
 }
 

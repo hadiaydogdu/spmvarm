@@ -31,12 +31,9 @@
 #include "llvm/Support/TargetRegistry.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/ToolOutputFile.h"
-#if defined(__linux__) && defined(__x86_64__)
 #include "lib/Target/X86/X86TargetObjectFile.h"
-#else
 #include "lib/Target/ARM/ARMTargetObjectFile.h"
-#endif
-#include "llvm/Target/TargetLoweringObjectFile.h"
+//#include "llvm/Target/TargetLoweringObjectFile.h"
 #include "llvm/Support/DynamicLibrary.h"
 #include "llvm/ExecutionEngine/SectionMemoryManager.h"
 #include "llvm/ExecutionEngine/RuntimeDyld.h"
@@ -163,21 +160,15 @@ void SpMVSpecializer::loadBuffer(ObjectBuffer *Buffer) {
 }
 
 TargetLoweringObjectFile *getMCObjectFileInfo(Triple &TheTriple) {
-
   TargetLoweringObjectFile *mcObjectFileInfo = NULL;
-#if defined(__linux__) && defined(__x86_64__)
   if(TheTriple.getArch() == Triple::x86_64 && TheTriple.getOS() == Triple::Darwin) {
     mcObjectFileInfo = new X86_64MachoTargetObjectFile();
   } else if(TheTriple.getArch() == Triple::x86_64 && TheTriple.getOS() == Triple::Linux) {
     mcObjectFileInfo = new X86LinuxTargetObjectFile();
-  } else
-#else
- if(TheTriple.getArch() == Triple::arm && TheTriple.getOS() == Triple::Linux) {
+  } else if(TheTriple.getArch() == Triple::arm && TheTriple.getOS() == Triple::Linux) {
     mcObjectFileInfo = new ARMElfTargetObjectFile();
-  } else
-#endif
- {
-    cerr << "Only X86_64 on Linux or MacOS is supported.\n";
+  } else {
+    cerr << "Unsupported environment. We supoort X86_64-Linux, X86_64-MacOS, and ARM-Linux.\n";
     exit(1);
   }
   return mcObjectFileInfo;
@@ -278,7 +269,6 @@ void SpMVSpecializer::specialize() {
   
   if (DUMP_OBJECT) {
     cout << svectorOS.str().str();
-
     exit(1);
   }
   

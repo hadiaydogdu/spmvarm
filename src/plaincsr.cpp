@@ -10,7 +10,7 @@ extern unsigned int NUM_OF_THREADS;
 
 vector<MatrixStripeInfo> stripeInfos;
 
-void plainCSR_multByM( int *rows, int *cols, double *vals,double *v, double *w) {
+void plainCSR_multByM(double *v, double *w, int *rows, int *cols, double *vals) {
   
 #ifdef __linux__
   int thread_id = omp_get_thread_num();

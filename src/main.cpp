@@ -193,36 +193,39 @@ int main(int argc, const char *argv[]) {
     fptrs = specializer.getMultByMFunctions();
   }
   END_TIME_PROFILE(codeGeneration);
+  
   unsigned long n = csrMatrix->n;
   unsigned long nz = csrMatrix->nz;
   double *v = new double[n];
   double *w = new double[n];
   for(int i = 0; i < n; ++i) {
-    w[i] = 0;
+    w[i] = i + 1;
   }
   for(int i = 0; i < n; ++i) {
-    v[i] = i;
+    v[i] = i + 1;
   }
+
   unsigned int ITERS;
   if (nz < 5000) {
-    ITERS = 500000;
-  } else if (nz < 10000) {
-    ITERS = 200000;
-  } else if (nz < 50000) {
-    ITERS = 100000;
-  } else if (nz < 100000) {
-    ITERS = 50000;
-  } else if (nz < 200000) {
     ITERS = 10000;
-  } else if (nz < 1000000) {
-    ITERS = 5000;
-  } else if (nz < 2000000) {
+  } else if (nz < 10000) {
+    ITERS = 10000;
+  } else if (nz < 50000) {
+    ITERS = 2000;
+  } else if (nz < 100000) {
     ITERS = 1000;
-  } else if (nz < 3000000) {
+  } else if (nz < 200000) {
     ITERS = 500;
-  } else {
+  } else if (nz < 1000000) {
     ITERS = 200;
+  } else if (nz < 2000000) {
+    ITERS = 100;
+  } else if (nz < 3000000) {
+    ITERS = 50;
+  } else {
+    ITERS = 20;
   }
+  
   if (__DEBUG__) {
     ITERS = 1;
   }
@@ -231,24 +234,26 @@ int main(int argc, const char *argv[]) {
   START_TIME_PROFILE(multByM);
   if (fptrs.size() == 1) {
     for (int i=0; i < ITERS; i++) {
-      fptrs[0](matrix->rows, matrix->cols, matrix->vals,v, w);
+      fptrs[0](v, w, matrix->rows, matrix->cols, matrix->vals);
     }
   } else {    
     for (unsigned i=0; i < ITERS; i++) {
       #pragma omp parallel for
       for (unsigned j = 0; j < fptrs.size(); j++) {
-        fptrs[j](matrix->rows, matrix->cols, matrix->vals,v, w);
+        fptrs[j](v, w, matrix->rows, matrix->cols, matrix->vals);
       }
     }
   }
   END_TIME_PROFILE(multByM);
+
   if (__DEBUG__) {
     for(int i = 0; i < n; ++i) 
       printf("%g\n", w[i]);
   } else {
-    Profiler::print(ITERS);  
+    Profiler::print(ITERS);
     std::cout << "0" << std::setw(10) << ITERS << " times    iterated\n";
   }
+
   /* Normally, a cleanup as follows is the client's responsibility.
      Because we're aliasing some pointers in the returned matrices
      for Unfolding, MKL, and PlainCSR, these deallocations would cause

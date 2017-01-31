@@ -3,9 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#if defined(__linux__) && defined(__x86_64__)
 #include "lib/Target/X86/MCTargetDesc/X86BaseInfo.h"
-#endif
 #include "llvm/MC/MCContext.h"
 #include "llvm/MC/MCExpr.h"
 #include "llvm/MC/MCInstBuilder.h"
@@ -115,7 +113,6 @@ maxRowLength(maxRowLength), baseValsIndex(baseValsIndex), baseRowsIndex(baseRows
 
 
 void UnrollingWithGOTOCodeEmitter::emit() {
-#if defined(__linux__) && defined(__x86_64__)
   dumpPushPopHeader();
   
   // xorl %eax, %eax
@@ -167,11 +164,9 @@ void UnrollingWithGOTOCodeEmitter::emit() {
   emitDynamicJMPInst(X86::RDX);
   
   dumpPushPopFooter();
-#endif
 }
 
 void UnrollingWithGOTOCodeEmitter::dumpPushPopHeader() {
-#if defined(__linux__) && defined(__x86_64__)
   // rows is in %rdx, cols is in %rcx, vals is in %r8
   emitPushPopInst(X86::PUSH64r,X86::R9);
   emitPushPopInst(X86::PUSH64r,X86::R10);
@@ -184,11 +179,9 @@ void UnrollingWithGOTOCodeEmitter::dumpPushPopHeader() {
   emitPushPopInst(X86::PUSH64r,X86::RCX);
   emitPushPopInst(X86::PUSH64r,X86::RDX);
   emitPushPopInst(X86::PUSH64r,X86::RBX);
-#endif
 }
 
 void UnrollingWithGOTOCodeEmitter::dumpPushPopFooter() {
-#if defined(__linux__) && defined(__x86_64__)
   emitPushPopInst(X86::POP64r,X86::RBX);
   emitPushPopInst(X86::POP64r,X86::RDX);
   emitPushPopInst(X86::POP64r,X86::RCX);
@@ -197,7 +190,6 @@ void UnrollingWithGOTOCodeEmitter::dumpPushPopFooter() {
   emitPushPopInst(X86::POP64r,X86::R10);
   emitPushPopInst(X86::POP64r,X86::R9);
   emitRETInst(); // We shouldn't have had to do this here. Strange...
-#endif
 }
 
 

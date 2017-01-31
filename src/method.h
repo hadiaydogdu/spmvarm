@@ -15,7 +15,7 @@
 
 namespace spMVgen {
   // multByM(v, w, rows, cols, vals)
-  typedef void(*MultByMFun)(int*, int*, double*,double*, double*);
+  typedef void(*MultByMFun)(double*, double*, int*, int*, double*);
   
   class SpMVMethod {
   public:
