@@ -113,12 +113,8 @@ stencils(stencils), baseValsIndex(baseValsIndex), baseRowsIndex(baseRowsIndex) {
 void StencilCodeEmitter::emit() {
   dumpPushPopHeader();
   
-int i = 0;
   for (auto &stencilInfo : *stencils) {
     dumpStencilAssemblyText(stencilInfo.first, stencilInfo.second);
-i++;
-//if (i==4)    
-//break;
   }
   
   dumpPushPopFooter();
@@ -126,27 +122,12 @@ i++;
 }
 
 void StencilCodeEmitter::dumpPushPopHeader() {
-  // rows is in %rdx, cols is in %rcx, vals is in %r8
- /* emitPushPopInst(X86::PUSH64r,X86::RBX);
-  emitLEAQInst(X86::R8, X86::RBX, sizeof(double) * baseValsIndex); // using %rbx for vals
-  
-  emitPushPopInst(X86::PUSH64r,X86::R8);
-  emitLEAQInst(X86::RDX, X86::R8, sizeof(int) * baseRowsIndex); // using %r8 for rows
-  
-  emitPushPopInst(X86::PUSH64r,X86::R11);
-  emitPushPopInst(X86::PUSH64r,X86::RDX);
-*/
-emitPushArmInst();
+  emitPushArmInst();
   emitLDROffsetArmInst(ARM::R7, ARM::SP, 32); // load vals into R7
 
 }
 
 void StencilCodeEmitter::dumpPushPopFooter() {
- /* emitPushPopInst(X86::POP64r, X86::RDX);
-  emitPushPopInst(X86::POP64r, X86::R11);
-  emitPushPopInst(X86::POP64r, X86::R8);
-  emitPushPopInst(X86::POP64r, X86::RBX);
-*/
   emitPopArmInst();
 }
 #define LDR_IMM_LIMIT 128
@@ -156,14 +137,14 @@ void StencilCodeEmitter::dumpStencilAssemblyText(const StencilPattern &stencil,
    unsigned long popularity = rowIndices.size();
    unsigned long stencilSize = stencil.size();
 
-   if(stencilSize == 0 || popularity == 0) return;
+   if (stencilSize == 0 || popularity == 0) return;
 
    emitMOVArmInst(ARM::R8, 0x0);
    emitMOVWArmInst(ARM::R9, (int)popularity * sizeof(int));
    unsigned long labeledBlockBeginningOffset = DFOS->size();
    emitVMOVI32ArmInst(ARM::D16, 0x0);
 
-   if(popularity > 1)
+   if (popularity > 1)
    {
       emitLDRRegisterArmInst(ARM::R6, ARM::R2, ARM::R8);
    }
