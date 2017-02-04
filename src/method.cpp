@@ -1184,8 +1184,8 @@ void SpMVCodeEmitter::emitSUBOffsetArmInst(unsigned dest_r, unsigned base_r, int
   if (!encodeAsARMImmediate(offset, encodedOffset)) {
     // Emit more than one instruction to handle this case
     unsigned powerOfTwo = largestPowerOfTwoSmallerThan(offset);
-    emitADDOffsetArmInst(dest_r, base_r, powerOfTwo);
-    emitADDOffsetArmInst(dest_r, dest_r, offset - powerOfTwo);
+    emitSUBOffsetArmInst(dest_r, base_r, powerOfTwo);
+    emitSUBOffsetArmInst(dest_r, dest_r, offset - powerOfTwo);
     return;
   }
 
