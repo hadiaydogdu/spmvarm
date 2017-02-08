@@ -139,9 +139,7 @@ void CSRbyNZCodeEmitter::dumpPushPopFooter() {
 void CSRbyNZCodeEmitter::dumpSingleLoop(unsigned long numRows, unsigned long rowLength) {
   // v is in R0, w is in R1, rows is in R2, cols is in R3, vals is in R7 
 
-//printf("r: %d l: %d \n",numRows,rowLength);  
   emitMOVArmInst(ARM::R8, 0x0); // loop counter 'a'
-  emitMOVWArmInst(ARM::R9, numRows * sizeof(int)); // loop limit
   
   unsigned long labeledBlockBeginningOffset = DFOS->size();
   emitVMOVI32ArmInst(ARM::D16, 0x0);
@@ -198,7 +196,8 @@ void CSRbyNZCodeEmitter::dumpSingleLoop(unsigned long numRows, unsigned long row
  emitADDOffsetArmInst(ARM::R7, ARM::R7, (rowLength - numShiftings * LDR_IMM_LIMIT) * sizeof(double));
  
  emitVADDArmInst(ARM::D18, ARM::D18, ARM::D16);
-  emitCMPRegisterArmInst(ARM::R8, ARM::R9);
+ 
+  emitCMPOffsetArmInst(ARM::R8, numRows * sizeof(int));
 
   emitVSTRArmInst(ARM::D18, ARM::R5);
   

@@ -961,14 +961,7 @@ void SpMVCodeEmitter::emitADDOffsetArmInst(unsigned dest_r, unsigned base_r, int
 
   unsigned char data[4];
   unsigned char *dataPtr = data;
-  //printf("offset :%d \n",offset);
-  //add     r2, r2, #24
-  //e2822018
-  //add     r1, r1, #12
-  //e281100c
-  //add     r3, r3, #4
-  //e2833004
-  //e2845f7d        add     r5, r4, #500    ; 0x1f4
+ 
   unsigned dest = dest_r - ARM::R0;
   unsigned base = base_r - ARM::R0;
 
@@ -1121,6 +1114,29 @@ void SpMVCodeEmitter::emitCMPRegisterArmInst(unsigned dest_r, unsigned base_r)
   DFOS->append(data, dataPtr);
 }
 
+void SpMVCodeEmitter::emitCMPOffsetArmInst(unsigned dest_r, int value)
+{
+   unsigned encodedOffset = 0;
+   if (!encodeAsARMImmediate(value, encodedOffset)) {
+      emitMOVWArmInst(ARM::R9, value); // loop limit
+      emitCMPRegisterArmInst(dest_r, ARM::R9);
+	return;
+   }
+
+  unsigned char data[4];
+  unsigned char *dataPtr = data;
+  unsigned dest = dest_r - ARM::R0;
+ 
+
+  *(dataPtr++) = 0xFF & encodedOffset;
+  *(dataPtr++) = 0x00 | ((encodedOffset >> 8) & 0x0F);
+  *(dataPtr++) = 0x50 | (dest&0x0f);
+  *(dataPtr++) = 0xe3;
+
+  DFOS->append(data, dataPtr);
+
+
+}
 //bne     .LBB0_1
 void SpMVCodeEmitter::emitBNEArmInst(long destinationAddress)
 {
