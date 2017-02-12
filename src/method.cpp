@@ -806,16 +806,6 @@ int absoluteValueOf(int value) {
   return (value < 0) ? (-1 * value) : value;
 }
 
-unsigned largestPowerOfTwoSmallerThan(int offset) {
-  if (offset == 0 || offset == 1) 
-    return offset; 
-  unsigned power = 1;
-  while (power * 2 < offset) {
-    power  = power * 2;
-  }
-  return power;
-}
-
 //          vldr    d17, [r2, i*8]
 void SpMVCodeEmitter::emitVLDRArmInst(unsigned dest_d, unsigned base_r, int offset)
 {
@@ -823,7 +813,7 @@ void SpMVCodeEmitter::emitVLDRArmInst(unsigned dest_d, unsigned base_r, int offs
     std::cerr << "Cannot handle offset " << offset << " in VLDR.\n";
     exit(1);
   } 
- 
+
   unsigned char data[4];
   unsigned char *dataPtr = data;
   unsigned base = base_r - ARM::R0;
@@ -831,7 +821,7 @@ void SpMVCodeEmitter::emitVLDRArmInst(unsigned dest_d, unsigned base_r, int offs
 
   unsigned sign = offset < 0 ? 0x50 : 0xd0;
   if (offset < 0)
-     offset = -offset;
+    offset = -offset;
 
   *(dataPtr++) = 0xFF & (offset >> 2);
   *(dataPtr++) = (dest << 4) | 0x0b;
@@ -950,24 +940,54 @@ void SpMVCodeEmitter::emitADDRegisterArmInst(unsigned dest_r, unsigned base1_r, 
 //     add     r5, lr, #offset
 void SpMVCodeEmitter::emitADDOffsetArmInst(unsigned dest_r, unsigned base_r, int offset)
 { 
+  if (offset == 0 && dest_r == base_r) return;
+
   unsigned encodedOffset = 0;
   if (!encodeAsARMImmediate(offset, encodedOffset)) {
     // Emit more than one instruction to handle this case 
-    unsigned powerOfTwo = largestPowerOfTwoSmallerThan(offset);
-    emitADDOffsetArmInst(dest_r, base_r, powerOfTwo);
-    emitADDOffsetArmInst(dest_r, dest_r, offset - powerOfTwo);
+    emitADDOffsetArmInst(dest_r, base_r, offset & 0x000000FF);
+    emitADDOffsetArmInst(dest_r, dest_r, offset & 0x0000FF00);
+    emitADDOffsetArmInst(dest_r, dest_r, offset & 0x00FF0000);
+    emitADDOffsetArmInst(dest_r, dest_r, offset & 0xFF000000);
     return;
   }
 
   unsigned char data[4];
   unsigned char *dataPtr = data;
- 
+
   unsigned dest = dest_r - ARM::R0;
   unsigned base = base_r - ARM::R0;
 
   *(dataPtr++) = 0xFF & encodedOffset;
   *(dataPtr++) = ((dest << 4) & 0xF0) | ((encodedOffset >> 8) & 0x0F);
   *(dataPtr++) = 0x80 | (base & 0x0F);
+  *(dataPtr++) = 0xe2;
+  DFOS->append(data, dataPtr);
+}
+
+void SpMVCodeEmitter::emitSUBOffsetArmInst(unsigned dest_r, unsigned base_r, int offset)
+{
+  if (offset == 0 && dest_r == base_r) return;
+
+  unsigned encodedOffset = 0;
+  if (!encodeAsARMImmediate(offset, encodedOffset)) {
+    // Emit more than one instruction to handle this case
+    emitSUBOffsetArmInst(dest_r, base_r, offset & 0x000000FF);
+    emitSUBOffsetArmInst(dest_r, dest_r, offset & 0x0000FF00);
+    emitSUBOffsetArmInst(dest_r, dest_r, offset & 0x00FF0000);
+    emitSUBOffsetArmInst(dest_r, dest_r, offset & 0xFF000000);
+    return;
+  }
+  
+  unsigned char data[4];
+  unsigned char *dataPtr = data;
+  
+  unsigned dest = dest_r - ARM::R0;
+  unsigned base = base_r - ARM::R0;
+  
+  *(dataPtr++) = 0xFF & encodedOffset;
+  *(dataPtr++) = ((dest << 4) & 0xF0) | ((encodedOffset >> 8) & 0x0F);
+  *(dataPtr++) = 0x40 | (base & 0x0F);
   *(dataPtr++) = 0xe2;
   DFOS->append(data, dataPtr);
 }
@@ -984,9 +1004,9 @@ void SpMVCodeEmitter::emitVMULArmInst(unsigned dest_d, unsigned base1_d, unsigne
   unsigned base1 = base1_d - ARM::D16;
   unsigned base2 = base2_d - ARM::D16;
 
-  *(dataPtr++) = 0xa0 | base2;
-  *(dataPtr++) = 0x0b | ((dest<<4) & 0xF0);
-  *(dataPtr++) = 0x60 | base1;
+  *(dataPtr++) = 0xa0 | (base2 & 0x0f);
+  *(dataPtr++) = 0x0b | ((dest << 4) & 0xf0);
+  *(dataPtr++) = 0x60 | (base1 & 0x0f);
   *(dataPtr++) = 0xee;
   DFOS->append(data, dataPtr);
 }
@@ -1042,9 +1062,14 @@ void SpMVCodeEmitter::emitMOVArmInst(unsigned base_r, int value)
       return;
     } else {
       // Emit more than one instruction to handle this case 
-      unsigned powerOfTwo = largestPowerOfTwoSmallerThan(value);
-      emitMOVArmInst(base_r, powerOfTwo);
-      emitADDOffsetArmInst(base_r, base_r, value - powerOfTwo);
+      unsigned partOne   = value & 0x000000FF;
+      unsigned partTwo   = value & 0x0000FF00;
+      unsigned partThree = value & 0x00FF0000;
+      unsigned partFour  = value & 0xFF000000;
+      emitMOVArmInst(base_r, partOne);
+      emitADDOffsetArmInst(base_r, base_r, partTwo);
+      emitADDOffsetArmInst(base_r, base_r, partThree);
+      emitADDOffsetArmInst(base_r, base_r, partFour);
       return;
     }
   }
@@ -1098,7 +1123,6 @@ void SpMVCodeEmitter::emitVSTRArmInst(unsigned dest_d, unsigned base_r)
   DFOS->append(data, dataPtr);
 }
  
-//e1530006
 void SpMVCodeEmitter::emitCMPRegisterArmInst(unsigned dest_r, unsigned base_r)
 {
   unsigned char data[4];
@@ -1114,19 +1138,18 @@ void SpMVCodeEmitter::emitCMPRegisterArmInst(unsigned dest_r, unsigned base_r)
   DFOS->append(data, dataPtr);
 }
 
-void SpMVCodeEmitter::emitCMPOffsetArmInst(unsigned dest_r, int value)
+void SpMVCodeEmitter::emitCMPOffsetArmInst(unsigned dest_r, int value, unsigned backup_r)
 {
-   unsigned encodedOffset = 0;
-   if (!encodeAsARMImmediate(value, encodedOffset)) {
-      emitMOVWArmInst(ARM::R9, value); // loop limit
-      emitCMPRegisterArmInst(dest_r, ARM::R9);
-	return;
-   }
+  unsigned encodedOffset = 0;
+  if (!encodeAsARMImmediate(value, encodedOffset)) {
+    emitMOVWArmInst(backup_r, value);
+    emitCMPRegisterArmInst(dest_r, backup_r);
+    return;
+  }
 
   unsigned char data[4];
   unsigned char *dataPtr = data;
   unsigned dest = dest_r - ARM::R0;
- 
 
   *(dataPtr++) = 0xFF & encodedOffset;
   *(dataPtr++) = 0x00 | ((encodedOffset >> 8) & 0x0F);
@@ -1134,9 +1157,8 @@ void SpMVCodeEmitter::emitCMPOffsetArmInst(unsigned dest_r, int value)
   *(dataPtr++) = 0xe3;
 
   DFOS->append(data, dataPtr);
-
-
 }
+
 //bne     .LBB0_1
 void SpMVCodeEmitter::emitBNEArmInst(long destinationAddress)
 {
@@ -1190,26 +1212,3 @@ void SpMVCodeEmitter::emitPopArmInst()
   DFOS->append(data, dataPtr);
 }
 
-void SpMVCodeEmitter::emitSUBOffsetArmInst(unsigned dest_r, unsigned base_r, int offset)
-{
-  unsigned encodedOffset = 0;
-  if (!encodeAsARMImmediate(offset, encodedOffset)) {
-    // Emit more than one instruction to handle this case
-    unsigned powerOfTwo = largestPowerOfTwoSmallerThan(offset);
-    emitSUBOffsetArmInst(dest_r, base_r, powerOfTwo);
-    emitSUBOffsetArmInst(dest_r, dest_r, offset - powerOfTwo);
-    return;
-  }
-
-  unsigned char data[4];
-  unsigned char *dataPtr = data;
- 
-  unsigned dest = dest_r - ARM::R0;
-  unsigned base = base_r - ARM::R0;
-
-  *(dataPtr++) = 0xFF & encodedOffset;
-  *(dataPtr++) = ((dest << 4) & 0xF0) | ((encodedOffset >> 8) & 0x0F);
-  *(dataPtr++) = 0x40 | (base & 0x0F);
-  *(dataPtr++) = 0xe2;
-  DFOS->append(data, dataPtr);
-}
