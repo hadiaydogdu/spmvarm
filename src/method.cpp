@@ -16,6 +16,8 @@ extern unsigned int NUM_OF_THREADS;
 using namespace spMVgen;
 using namespace llvm;
 
+const int ldr_register_bits[] = {0x01, 0x02, 0x04, 0x08, 0x10,  0x20,  0x40,  0x80, 0x0100, 0x0200, 0x0400, 0x0800, 0x1000, 0x2000, 0x4000, 0x8000};
+
 SpMVMethod::SpMVMethod(Matrix *csrMatrix) {
   this->matrix = NULL;
   this->csrMatrix = csrMatrix;
@@ -1224,6 +1226,62 @@ void SpMVCodeEmitter::emitVMLAArmInst(unsigned dest_d, unsigned base1_d, unsigne
   *(dataPtr++) = 0x0b | ((dest << 4) & 0xf0);
   *(dataPtr++) = 0x40 | (base1 & 0x0f);
   *(dataPtr++) = 0xee;
+  DFOS->append(data, dataPtr);
+}
+
+void SpMVCodeEmitter::emitLDMArmInst(unsigned base_r, unsigned dest_first_r, unsigned dest_end_r)
+{ 
+  unsigned char data[4];
+  unsigned char *dataPtr = data;
+  unsigned base = base_r - ARM::R0;
+  unsigned destf = dest_first_r - ARM::R0;
+  unsigned deste = dest_end_r - ARM::R0;
+
+  if ( dest_first_r - ARM::R0 < base && base < dest_end_r - ARM::R0)
+  {
+	  printf("base register cannot be in the reg list\n");
+	  exit(0);
+  }
+
+  unsigned reg_list = 0;
+
+  for (int i = destf; i <= deste; i++)
+  {
+
+    reg_list |= ldr_register_bits[i];
+
+  } 
+
+  *(dataPtr++) = reg_list & 0xFF;
+  *(dataPtr++) = (reg_list >> 8 ) & 0xFF;
+  *(dataPtr++) = 0xb3;
+  *(dataPtr++) = 0xe8;
+  DFOS->append(data, dataPtr);
+}
+
+void SpMVCodeEmitter::emitVLDMArmInst(unsigned base_r, unsigned dest_first_d, unsigned dest_end_d)
+{ 
+  unsigned char data[4];
+  unsigned char *dataPtr = data;
+  unsigned base = base_r - ARM::R0;
+  unsigned destf = dest_first_d - ARM::D16;
+  unsigned deste = dest_end_d - ARM::D16;
+
+  if (dest_first_d == ARM::D16)
+  {
+     printf("reg list must start with D17\n");
+     exit(0);
+  }
+  if (dest_end_d < dest_first_d)
+  {
+     printf("reg list must be contiguous\n");
+     exit(0);
+  }
+  
+  *(dataPtr++) = (2 + 2 * (deste - destf)) & 0xff;
+  *(dataPtr++) = 0x1b;
+  *(dataPtr++) = 0xf7;
+  *(dataPtr++) = 0xec;
   DFOS->append(data, dataPtr);
 }
 

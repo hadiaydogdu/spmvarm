@@ -65,7 +65,8 @@ namespace spMVgen {
     void emitBNEArmInst(long destinationAddress);
     void emitPushArmInst();
     void emitPopArmInst();
-
+    void emitLDMArmInst(unsigned base_r, unsigned dest_first_r, unsigned dest_end_r);
+    void emitVLDMArmInst(unsigned base_r, unsigned dest_first_d, unsigned dest_end_d);
   protected:
     llvm::SmallVectorImpl<char> *DFOS;
 
