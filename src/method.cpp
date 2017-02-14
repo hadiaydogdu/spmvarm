@@ -1285,3 +1285,24 @@ void SpMVCodeEmitter::emitVLDMArmInst(unsigned base_r, unsigned dest_first_d, un
   DFOS->append(data, dataPtr);
 }
 
+
+void SpMVCodeEmitter::emitARMCodeAlignment(unsigned int alignment)
+{
+    unsigned numBytesToEmit = (alignment - (DFOS->size() % alignment)) % alignment;
+    for (int i = 0; i < numBytesToEmit/4; i++){
+       emitNOPArmInst();
+    }
+}
+
+void SpMVCodeEmitter::emitNOPArmInst()
+{
+  unsigned char data[4];
+  unsigned char *dataPtr = data;
+  *(dataPtr++) = 0x00;
+  *(dataPtr++) = 0xf0;
+  *(dataPtr++) = 0x20;
+  *(dataPtr++) = 0xe3;
+  DFOS->append(data, dataPtr);
+}
+
+
