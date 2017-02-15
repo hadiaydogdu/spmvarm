@@ -69,6 +69,7 @@ namespace spMVgen {
     void emitVLDMArmInst(unsigned base_r, unsigned dest_first_d, unsigned dest_end_d);
     void emitARMCodeAlignment(unsigned int alignment);
     void emitNOPArmInst();
+    void emitEORArmInst(unsigned dest_d, unsigned base1_d, unsigned base2_d);
   protected:
     llvm::SmallVectorImpl<char> *DFOS;
 
