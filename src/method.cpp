@@ -1305,7 +1305,7 @@ void SpMVCodeEmitter::emitNOPArmInst()
   DFOS->append(data, dataPtr);
 }
 
-void SpMVCodeEmitter::emitEORArmInst(unsigned dest_d, unsigned base1_d, unsigned base2_d)
+void SpMVCodeEmitter::emitVEORArmInst(unsigned dest_d, unsigned base1_d, unsigned base2_d)
 {
   unsigned char data[4];
   unsigned char *dataPtr = data;
@@ -1319,3 +1319,19 @@ void SpMVCodeEmitter::emitEORArmInst(unsigned dest_d, unsigned base1_d, unsigned
   *(dataPtr++) = 0xf3;
   DFOS->append(data, dataPtr);
 }
+
+void SpMVCodeEmitter::emitEORArmInst(unsigned dest_r, unsigned base1_r, unsigned base2_r)
+{
+  unsigned char data[4];
+  unsigned char *dataPtr = data;
+  unsigned dest = dest_r - ARM::R0;
+  unsigned base1 = base1_r - ARM::R0;
+  unsigned base2 = base2_r - ARM::R0;
+
+  *(dataPtr++) = 0x00 | (base2 & 0x0f);
+  *(dataPtr++) = 0x00 | ((dest << 4) & 0xf0);
+  *(dataPtr++) = 0x20 | (base1 & 0x0f);
+  *(dataPtr++) = 0xe0;
+  DFOS->append(data, dataPtr);
+}
+
