@@ -142,7 +142,6 @@ void GenOSKICodeEmitter::emit() {
 void GenOSKICodeEmitter::dumpPushPopHeader() {
   emitPushArmInst();
   emitLDROffsetArmInst(ARM::R7, ARM::SP, 32); // load vals into R7
-
 }
 
 void GenOSKICodeEmitter::dumpPushPopFooter() {
@@ -158,7 +157,7 @@ void GenOSKICodeEmitter::dumpForLoops() {
     emitARMCodeAlignment(32);
     unsigned long labeledBlockBeginningOffset = DFOS->size();
     
-emitLDRRegisterArmInst(ARM::R4, ARM::R2, ARM::R8);
+    emitLDRRegisterArmInst(ARM::R4, ARM::R2, ARM::R8);
     emitADDRegisterArmInst(ARM::R4, ARM::R1, ARM::R4, 3); //www  
     emitLDRRegisterArmInst(ARM::R5, ARM::R3, ARM::R8);
     emitADDRegisterArmInst(ARM::R5, ARM::R0, ARM::R5, 3); //VV
@@ -171,7 +170,7 @@ emitLDRRegisterArmInst(ARM::R4, ARM::R2, ARM::R8);
     map<int, vector<int> > patternLocs;
     for (int j = 0; j < size; ++j) {
       if (patternBits[j] == 1) {
-          patternLocs[j / b_c].push_back(j % b_c);
+        patternLocs[j / b_c].push_back(j % b_c);
       }
     }
     
