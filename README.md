@@ -79,8 +79,7 @@ The name should be provided without the `.mtx` extention.
 * `-debug`: Output vector is printed.
 * `-dump_matrix`: Dumps matrix's rows, cols and vals array (in CSR format)
 * `-dump_object`: Dumps the generated object code to **std out**. The output
-can be diassembled using a disassembler (e.g. `llvm-objdump`) to examine the code.
-Also, the output can be separately linked to a main file.
+can be diassembled using a disassembler (e.g. `objdump`) to examine the code.
 * `-matrix_stats`: Prints the `svmAnalyzer`'s results for the current matrix.
 
 ### Examples
